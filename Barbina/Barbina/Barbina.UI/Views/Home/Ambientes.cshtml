@@ -1,0 +1,36 @@
+@{ ViewData["Title"] = "Ambientes"; Layout = "_Layout"; }
+<section class="hero-page" style="background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1920&q=80');">
+    <div class="hero-content"><h2>Nossos Ambientes</h2><p>Espaços exclusivos para momentos inesquecíveis.</p></div>
+</section>
+<section class="food-gallery" style="background-color:var(--white)">
+    <div class="container">
+        <div class="section-header"><h2>Conheça Nossos Espaços</h2><p>Cada ambiente foi cuidadosamente projetado para proporcionar a melhor experiência.</p></div>
+        <div class="food-gallery-grid">
+            <div class="plate-card anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" alt="Salão Principal" loading="lazy">
+                <div class="plate-overlay"><h3>Salão Principal</h3><span style="font-size:.9rem;color:var(--primary-color)">Capacidade para 80 pessoas</span></div>
+            </div>
+            <div class="plate-card anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80" alt="Área de Balcão" loading="lazy">
+                <div class="plate-overlay"><h3>Área de Balcão</h3><span style="font-size:.9rem;color:var(--primary-color)">Para apreciar drinques</span></div>
+            </div>
+            <div class="plate-card anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80" alt="Espaço Privativo" loading="lazy">
+                <div class="plate-overlay"><h3>Espaço Privativo</h3><span style="font-size:.9rem;color:var(--primary-color)">Para eventos exclusivos</span></div>
+            </div>
+            <div class="plate-card anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80" alt="Cozinha Show" loading="lazy">
+                <div class="plate-overlay"><h3>Cozinha Show</h3><span style="font-size:.9rem;color:var(--primary-color)">A arte ao vivo</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+<section class="cta-reserva">
+    <div class="container">
+        <div class="cta-content">
+            <h2 class="anim-fade-up">Reserve o Espaço Ideal</h2>
+            <p class="anim-fade-up">Entre em contato para disponibilidade e condições especiais.</p>
+            <a asp-controller="Home" asp-action="Reservas" class="btn btn-primary anim-fade-up">Fazer Reserva</a>
+        </div>
+    </div>
+</section>

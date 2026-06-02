@@ -1,0 +1,57 @@
+@model List<Barbina.UI.DTOs.ProdutoDto>
+@{ ViewData["Title"] = "Cardápio"; Layout = "_Layout"; var categorias = ViewBag.Categorias as List<Barbina.UI.DTOs.CategoriaDto> ?? new(); }
+
+<section class="hero-page" style="background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1920&q=80');">
+    <div class="hero-content">
+        <h2>Nosso Cardápio</h2>
+        <p>Uma seleção de pratos refinados, preparados com arte e paixão.</p>
+    </div>
+</section>
+
+<section class="menu">
+    <div class="container">
+        <div class="section-header">
+            <h2>Obras de Arte Comestíveis</h2>
+            <p>Descubra as categorias que compõem a nossa experiência gastronômica.</p>
+        </div>
+
+        @if (categorias.Any())
+        {
+            <div class="menu-categories">
+                @foreach (var (cat, i) in categorias.Select((c, i) => (c, i)))
+                {
+                    <button type="button" class="category-btn @(i == 0 ? "active" : "")"
+                            data-category="cat-@cat.Id">@cat.Nome</button>
+                }
+            </div>
+
+            @foreach (var (cat, i) in categorias.Select((c, i) => (c, i)))
+            {
+                var produtosCat = Model.Where(p => p.CategoriaId == cat.Id).ToList();
+                <div class="menu-items @(i == 0 ? "active" : "")" id="cat-@cat.Id">
+                    @if (produtosCat.Any())
+                    {
+                        @foreach (var p in produtosCat)
+                        {
+                            <div class="menu-item anim-fade-up">
+                                <div class="item-info">
+                                    <h3>@p.Nome</h3>
+                                    <p>@p.Descricao</p>
+                                </div>
+                                <span class="item-price">R$ @p.ValorVenda.ToString("N2")</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p style="text-align:center; color:#888; padding:40px 0;">Nenhum item nesta categoria no momento.</p>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <p style="text-align:center; color:#888; padding:40px 0;">Cardápio indisponível no momento. Tente novamente em breve.</p>
+        }
+    </div>
+</section>

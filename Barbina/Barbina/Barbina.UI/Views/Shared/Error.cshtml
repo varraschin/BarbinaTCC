@@ -1,0 +1,13 @@
+@model Barbina.UI.Models.ErrorViewModel
+@{ ViewData["Title"] = "Erro"; Layout = "_Layout"; }
+<section class="hero-page">
+    <div class="hero-content">
+        <h2>Ops! Algo deu errado.</h2>
+        <p>Ocorreu um erro inesperado. Tente novamente mais tarde.</p>
+    </div>
+</section>
+<section style="padding:60px 0; text-align:center;">
+    <div class="container">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Voltar ao início</a>
+    </div>
+</section>

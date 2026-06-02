@@ -1,0 +1,89 @@
+@{ var adminNome = Context.Session.GetString("AdminNome") ?? "Admin"; var adminFoto = Context.Session.GetString("AdminFoto") ?? "/img/usuarios/avatar.png"; var adminEmail = Context.Session.GetString("AdminEmail") ?? ""; }
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbina CMS | @ViewData["Title"]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="~/css/admin-style.css" asp-append-version="true">
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <span class="logo-icon">✦</span>
+                <span class="logo-text">Barbina</span>
+                <span class="logo-badge">CMS</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/admin" class="nav-item @(ViewData["Title"]?.ToString() == "Dashboard" ? "active" : "")">
+                    <i class="fas fa-chart-line"></i><span>Visão Geral</span>
+                </a>
+                <a href="/admin/produtos" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Produtos" ? "active" : "")">
+                    <i class="fas fa-utensils"></i><span>Cardápio</span>
+                </a>
+                <a href="/admin/categorias" class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Categorias" ? "active" : "")">
+                    <i class="fas fa-tags"></i><span>Categorias</span>
+                </a>
+                <a href="/" target="_blank" class="nav-item">
+                    <i class="fas fa-external-link-alt"></i><span>Ver Site</span>
+                </a>
+            </nav>
+            <div class="sidebar-profile">
+                <div class="profile-avatar">
+                    <img src="@adminFoto" alt="@adminNome" onerror="this.src='https://ui-avatars.com/api/?background=9A8456&color=fff&bold=true&size=48&name=@Uri.EscapeDataString(adminNome)'">
+                </div>
+                <div class="profile-info">
+                    <h4>@adminNome</h4>
+                    <p>Administrador</p>
+                </div>
+                <a href="/admin/auth/logout" class="profile-logout" title="Sair">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </aside>
+        <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+        <main class="main-content">
+            <header class="main-header">
+                <div class="main-header__left">
+                    <button type="button" class="btn-sidebar-toggle" id="sidebarToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1>@ViewData["Title"]</h1>
+                </div>
+                <div class="header-actions">
+                    <div class="date-time" id="currentDateTime"></div>
+                </div>
+            </header>
+            <div class="content-area">
+                @if (TempData["Sucesso"] != null)
+                {
+                    <div class="toast toast-visible toast-success" style="position:relative;right:0;bottom:0;margin-bottom:20px;pointer-events:auto;opacity:1;transform:none;">
+                        <i class="fas fa-check-circle" style="margin-right:8px;color:#28a745;"></i> @TempData["Sucesso"]
+                    </div>
+                }
+                @if (TempData["Erro"] != null)
+                {
+                    <div class="toast toast-visible toast-error" style="position:relative;right:0;bottom:0;margin-bottom:20px;pointer-events:auto;opacity:1;transform:none;">
+                        <i class="fas fa-exclamation-circle" style="margin-right:8px;color:#dc3545;"></i> @TempData["Erro"]
+                    </div>
+                }
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+    <script>
+        // Relógio
+        function updateClock(){const n=new Date();document.getElementById('currentDateTime').textContent=n.toLocaleDateString('pt-BR')+' '+n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+        updateClock(); setInterval(updateClock,1000);
+        // Sidebar mobile
+        document.getElementById('sidebarToggle')?.addEventListener('click',function(){document.body.classList.toggle('sidebar-open');document.getElementById('sidebarBackdrop').hidden=!document.getElementById('sidebarBackdrop').hidden;});
+        document.getElementById('sidebarBackdrop')?.addEventListener('click',function(){document.body.classList.remove('sidebar-open');this.hidden=true;});
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

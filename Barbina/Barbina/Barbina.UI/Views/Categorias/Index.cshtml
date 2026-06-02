@@ -1,0 +1,45 @@
+@model List<Barbina.UI.DTOs.CategoriaDto>
+@{ ViewData["Title"] = "Categorias"; Layout = "_AdminLayout"; }
+
+<div class="card">
+    <div class="card-header">
+        <h3><i class="fas fa-tags" style="margin-right:10px;"></i>Categorias (@Model.Count)</h3>
+        <a href="/admin/categorias/criar" class="btn-primary"><i class="fas fa-plus"></i> Nova Categoria</a>
+    </div>
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <div class="empty-state"><div class="empty-state-icon">📂</div><p>Nenhuma categoria encontrada.</p></div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>ID</th><th>Nome</th><th>Cor</th><th>Foto</th><th>Ações</th></tr></thead>
+                    <tbody>
+                    @foreach (var cat in Model)
+                    {
+                        <tr>
+                            <td>@cat.Id</td>
+                            <td><strong>@cat.Nome</strong></td>
+                            <td><span style="display:inline-block;width:24px;height:24px;border-radius:6px;background:@cat.Cor;vertical-align:middle;margin-right:8px;"></span>@cat.Cor</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(cat.Foto))
+                                { <img src="@cat.Foto" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'"> }
+                                else { <span style="color:var(--gray-text);font-size:13px;">Sem foto</span> }
+                            </td>
+                            <td class="table-actions">
+                                <a href="/admin/categorias/editar/@cat.Id" class="btn-icon" title="Editar"><i class="fas fa-pencil-alt"></i></a>
+                                <form method="post" action="/admin/categorias/excluir/@cat.Id" style="display:inline" onsubmit="return confirm('Excluir categoria @cat.Nome?')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-icon danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

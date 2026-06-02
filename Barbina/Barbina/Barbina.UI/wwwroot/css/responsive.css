@@ -1,0 +1,118 @@
+
+/* Tablets (até 1024px) */
+@media (max-width: 1024px) {
+    .container { max-width: 960px; }
+    .hero-content h2 { font-size: 3.5rem; }
+    .hero-content p { font-size: 1.5rem; }
+    .hero-page h2 { font-size: 3rem; }
+    
+    .feature-content { grid-template-columns: 1fr; gap: 40px; }
+    .feature-image { order: -1; }
+    .feature-text .section-header { text-align: center; }
+    .feature-text .section-header h2::after { margin: 10px auto 0; }
+    .feature-text .btn-primary { margin: 0 auto; display: block; }
+    
+    .historia-content { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+    .historia-text .section-header { text-align: center; }
+    .historia-text .section-header h2::after { margin: 10px auto 0; }
+    .historia-imagem { order: -1; }
+    
+    .footer-content { grid-template-columns: 1fr; text-align: center; }
+    .footer-section { margin-bottom: 30px; }
+    .footer-section p { justify-content: center; }
+    .social-links { justify-content: center; }
+}
+
+/* Mobile (até 768px) */
+@media (max-width: 768px) {
+    section { padding: 80px 0; }
+    .container { padding: 0 15px; }
+    
+    /* Header */
+    .header .container { padding: 15px 15px; }
+    .logo h1 { font-size: 2rem; }
+    .logo span { font-size: 0.7rem; }
+    .nav { display: none; }
+    .menu-toggle { 
+        display: block; 
+        font-size: 1.5rem; 
+        cursor: pointer; 
+        color: var(--primary-color);
+        z-index: 1001; 
+    }
+    
+    /* Menu Mobile Overlay */
+    .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: var(--dark-color);
+        transition: transform 0.4s ease-in-out;
+        transform: translateX(100%);
+        padding-top: 80px;
+    }
+    .nav.active {
+        transform: translateX(0);
+        display: block;
+    }
+    .nav ul {
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+        padding: 40px 0;
+    }
+    .nav a {
+        font-size: 1.5rem;
+    }
+    
+    /* Hero */
+    .hero { height: 70vh; background-attachment: scroll; }
+    .hero-content h2 { font-size: 2.8rem; }
+    .hero-content p { font-size: 1.2rem; }
+    .hero-buttons { flex-direction: column; gap: 15px; }
+    .btn { width: 100%; }
+    .hero-page { height: 30vh; }
+    .hero-page h2 { font-size: 2.5rem; }
+    
+    /* Seções Gerais */
+    .section-header h2 { font-size: 2.5rem; }
+    
+    /* Cardápio */
+    .menu-categories { gap: 10px; }
+    .category-btn { padding: 10px 20px; font-size: 0.9rem; }
+    .menu-item { flex-direction: column; align-items: flex-start; }
+    .item-info { padding-right: 0; margin-bottom: 10px; }
+    .item-price { align-self: flex-end; }
+    
+    /* Reservas */
+    .form-row { grid-template-columns: 1fr; }
+    .form-container { padding: 30px; }
+    .form-container--reserva { padding: 28px 22px 32px; }
+    .radio-cards { grid-template-columns: 1fr; }
+    .reserva-strip {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 12px;
+    }
+    .reserva-strip__item { justify-content: center; }
+    .form-head h2,
+    .form-container h2 { font-size: 2rem; }
+    
+    /* Contato */
+    .info-grid { grid-template-columns: 1fr; }
+    .faq-pergunta h3 { font-size: 1rem; }
+}
+
+/* Mobile Pequeno (até 480px) */
+@media (max-width: 480px) {
+    .hero-content h2 { font-size: 2.2rem; }
+    .hero-content p { font-size: 1rem; }
+    .section-header h2 { font-size: 2rem; }
+    .plate-card { height: 280px; }
+    .testimonial-card { padding: 30px; }
+    .testimonial-card blockquote { font-size: 1.1rem; }
+    .cta-content h2 { font-size: 2.5rem; }
+}

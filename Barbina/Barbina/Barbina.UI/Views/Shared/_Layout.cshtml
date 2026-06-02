@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] | Restaurante Barbina</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/style.css" asp-append-version="true">
+    <link rel="stylesheet" href="~/css/responsive.css" asp-append-version="true">
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <a asp-controller="Home" asp-action="Index" class="logo">
+                <h1>BARBINA</h1>
+                <span>RESTAURANTE & EXPERIÊNCIAS</span>
+            </a>
+            <nav class="nav">
+                <ul>
+                    <li><a asp-controller="Home" asp-action="Index" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">Início</a></li>
+                    <li><a asp-controller="Home" asp-action="Cardapio" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Cardapio" ? "active" : "")">Cardápio</a></li>
+                    <li><a asp-controller="Home" asp-action="Ambientes" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Ambientes" ? "active" : "")">Ambientes</a></li>
+                    <li><a asp-controller="Home" asp-action="Reservas" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Reservas" ? "active" : "")">Reservas</a></li>
+                    <li><a asp-controller="Home" asp-action="Contato" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Contato" ? "active" : "")">Contato</a></li>
+                </ul>
+            </nav>
+            <div class="menu-toggle"><i class="fas fa-bars"></i></div>
+        </div>
+    </header>
+
+    @RenderBody()
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>BARBINA</h3>
+                    <p>Restaurante & Experiências</p>
+                    <div class="social-links">
+                        <a href="https://www.instagram.com/barbina_barrabonita" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.facebook.com/barbinarestaurante" target="_blank" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                        <a href="https://wa.me/551434381255" target="_blank" aria-label="Whatsapp"><i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Horários</h4>
+                    <p><i class="fas fa-clock"></i> Quarta a Sábado: 17h às 23:30h</p>
+                    <p><i class="fas fa-clock"></i> Domingo: 11h às 15h</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Contato</h4>
+                    <p><i class="fas fa-map-marker-alt"></i> Av. Pedro Ometto, 700 - Centro, Barra Bonita - SP</p>
+                    <p><i class="fas fa-phone"></i> (14) 3438-1255</p>
+                    <a href="/admin" class="admin-access">Acesso administrativo</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; @DateTime.Now.Year Restaurante Barbina | Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/js/main.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

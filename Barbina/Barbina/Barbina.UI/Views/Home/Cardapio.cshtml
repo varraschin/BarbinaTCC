@@ -1,7 +1,7 @@
-@model List<Barbina.UI.DTOs.ProdutoDto>
-@{ ViewData["Title"] = "Cardápio"; Layout = "_Layout"; var categorias = ViewBag.Categorias as List<Barbina.UI.DTOs.CategoriaDto> ?? new(); }
+@{ ViewData["Title"] = "Cardápio | Restaurante Barbina"; Layout = "_Layout"; }
 
-<section class="hero-page" style="background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1920&q=80');">
+<section class="hero-page"
+    style="background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1920&q=80');">
     <div class="hero-content">
         <h2>Nosso Cardápio</h2>
         <p>Uma seleção de pratos refinados, preparados com arte e paixão.</p>
@@ -15,43 +15,134 @@
             <p>Descubra as categorias que compõem a nossa experiência gastronômica.</p>
         </div>
 
-        @if (categorias.Any())
-        {
-            <div class="menu-categories">
-                @foreach (var (cat, i) in categorias.Select((c, i) => (c, i)))
-                {
-                    <button type="button" class="category-btn @(i == 0 ? "active" : "")"
-                            data-category="cat-@cat.Id">@cat.Nome</button>
-                }
-            </div>
+        <div class="menu-categories">
+            <button type="button" class="category-btn active" data-category="entradas">Entradas</button>
+            <button type="button" class="category-btn" data-category="principais">Pratos Principais</button>
+            <button type="button" class="category-btn" data-category="bebidas">Bebidas</button>
+            <button type="button" class="category-btn" data-category="sobremesas">Sobremesas</button>
+        </div>
 
-            @foreach (var (cat, i) in categorias.Select((c, i) => (c, i)))
-            {
-                var produtosCat = Model.Where(p => p.CategoriaId == cat.Id).ToList();
-                <div class="menu-items @(i == 0 ? "active" : "")" id="cat-@cat.Id">
-                    @if (produtosCat.Any())
-                    {
-                        @foreach (var p in produtosCat)
-                        {
-                            <div class="menu-item anim-fade-up">
-                                <div class="item-info">
-                                    <h3>@p.Nome</h3>
-                                    <p>@p.Descricao</p>
-                                </div>
-                                <span class="item-price">R$ @p.ValorVenda.ToString("N2")</span>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p style="text-align:center; color:#888; padding:40px 0;">Nenhum item nesta categoria no momento.</p>
-                    }
-                </div>
-            }
-        }
-        else
-        {
-            <p style="text-align:center; color:#888; padding:40px 0;">Cardápio indisponível no momento. Tente novamente em breve.</p>
-        }
+        <div class="menu-items active" id="entradas">
+            <div id="items-entradas"></div>
+        </div>
+        <div class="menu-items" id="principais">
+            <div id="items-principais"></div>
+        </div>
+        <div class="menu-items" id="bebidas">
+            <div id="items-bebidas"></div>
+        </div>
+        <div class="menu-items" id="sobremesas">
+            <div id="items-sobremesas"></div>
+        </div>
     </div>
 </section>
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    const STORAGE_KEY = 'barbina_cms_v2';
+
+    // Mapeamento: categoria do admin → id do container na página
+    const CATEGORY_MAP = {
+        'Entradas':          'items-entradas',
+        'Pratos Principais': 'items-principais',
+        'Bebidas':           'items-bebidas',
+        'Sobremesas':        'items-sobremesas'
+    };
+
+    // Botões do menu de categorias
+    const CATEGORY_BTN_MAP = {
+        'Entradas':          'entradas',
+        'Pratos Principais': 'principais',
+        'Bebidas':           'bebidas',
+        'Sobremesas':        'sobremesas'
+    };
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = String(text ?? '');
+        return div.innerHTML;
+    }
+
+    function loadMenuFromAdmin() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const db = JSON.parse(raw);
+                if (Array.isArray(db.menu)) return db.menu;
+            }
+        } catch (e) {
+            console.warn('Erro ao ler cardápio do admin:', e);
+        }
+        return null;
+    }
+
+    function buildItemHtml(item) {
+        // NÃO usa anim-fade-up para evitar itens invisíveis (opacity:0 sem .visible)
+        return `
+            <div class="menu-item">
+                <div class="item-info">
+                    <h3>${escapeHtml(item.name)}</h3>
+                    <p>${escapeHtml(item.description)}</p>
+                </div>
+            </div>`;
+    }
+
+    function renderMenu() {
+        const menu = loadMenuFromAdmin();
+
+        Object.entries(CATEGORY_MAP).forEach(([category, containerId]) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (!menu) {
+                // localStorage ainda não existe (admin nunca foi aberto)
+                container.innerHTML = '<p class="menu-empty-msg">Nenhum item cadastrado ainda.</p>';
+                return;
+            }
+
+            const items = menu.filter(item => item.category === category);
+
+            if (items.length === 0) {
+                // Categoria existe mas está vazia - mostra mensagem, não desaparece
+                container.innerHTML = '<p class="menu-empty-msg">Nenhum item cadastrado nesta categoria.</p>';
+            } else {
+                container.innerHTML = items.map(buildItemHtml).join('');
+            }
+        });
+
+        // Reinicializar troca de abas (o main.js já faz isso, mas por segurança)
+        initCategoryButtons();
+    }
+
+    function initCategoryButtons() {
+        const btns = document.querySelectorAll('.category-btn');
+        btns.forEach(btn => {
+            // Remove listener antigo clonando o botão
+            const clone = btn.cloneNode(true);
+            btn.parentNode.replaceChild(clone, btn);
+        });
+
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.menu-items').forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+                const targetId = this.getAttribute('data-category');
+                const target = document.getElementById(targetId);
+                if (target) target.classList.add('active');
+            });
+        });
+    }
+
+    // Rodar quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderMenu);
+    } else {
+        renderMenu();
+    }
+})();
+</script>
+}

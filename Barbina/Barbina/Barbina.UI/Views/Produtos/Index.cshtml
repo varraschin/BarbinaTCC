@@ -9,35 +9,57 @@
     <div class="card-body">
         @if (!Model.Any())
         {
-            <div class="empty-state"><div class="empty-state-icon">🍽️</div><p>Nenhum produto encontrado.</p></div>
+            <div class="empty-state">
+                <div class="empty-state-icon">🍽️</div>
+                <p>Nenhum produto encontrado.</p>
+            </div>
         }
         else
         {
             <div class="table-responsive">
                 <table class="table">
-                    <thead><tr><th>Foto</th><th>Nome</th><th>Categoria</th><th>Preço</th><th>Estoque</th><th>Destaque</th><th>Ações</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Categoria</th>
+                            <th>Estoque</th>
+                            <th>Destaque</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
                     <tbody>
                     @foreach (var p in Model)
                     {
                         <tr>
                             <td>
-                                @if (!string.IsNullOrEmpty(p.Foto))
-                                { <img src="@p.Foto" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" onerror="this.src='https://via.placeholder.com/48x48/22262E/9A8456?text=?'"> }
-                                else { <div style="width:48px;height:48px;border-radius:8px;background:var(--dark-bg);display:flex;align-items:center;justify-content:center;"><i class="fas fa-image" style="color:var(--gray-text);"></i></div> }
+                                <strong>@p.Nome</strong>
+                                <br>
+                                <small style="color:var(--gray-text);font-size:12px;">
+                                    @(p.Descricao?.Length > 70 ? p.Descricao.Substring(0, 70) + "…" : p.Descricao)
+                                </small>
                             </td>
-                            <td><strong>@p.Nome</strong><br><small style="color:var(--gray-text);font-size:12px;">@(p.Descricao?.Length > 60 ? p.Descricao.Substring(0,60) + "..." : p.Descricao)</small></td>
                             <td><span class="menu-item-card__cat">@p.CategoriaNome</span></td>
-                            <td style="color:var(--gold);font-weight:700;">R$ @p.ValorVenda.ToString("N2")</td>
                             <td>@p.Qtde un.</td>
                             <td>
-                                @if (p.Destaque) { <span class="status-badge status-confirmed"><i class="fas fa-star"></i> Sim</span> }
-                                else { <span style="color:var(--gray-text);font-size:13px;">Não</span> }
+                                @if (p.Destaque)
+                                {
+                                    <span class="status-badge status-confirmed"><i class="fas fa-star"></i> Sim</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--gray-text);font-size:13px;">Não</span>
+                                }
                             </td>
                             <td class="table-actions">
-                                <a href="/admin/produtos/editar/@p.Id" class="btn-icon" title="Editar"><i class="fas fa-pencil-alt"></i></a>
-                                <form method="post" action="/admin/produtos/excluir/@p.Id" style="display:inline" onsubmit="return confirm('Excluir @p.Nome?')">
+                                <a href="/admin/produtos/editar/@p.Id" class="btn-icon" title="Editar">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                                <form method="post" action="/admin/produtos/excluir/@p.Id" style="display:inline"
+                                      onsubmit="return confirm('Excluir @Html.Raw(p.Nome.Replace("'", "\\'"))?')">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-icon danger" title="Excluir"><i class="fas fa-trash"></i></button>
+                                    <button type="submit" class="btn-icon danger" title="Excluir">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </form>
                             </td>
                         </tr>

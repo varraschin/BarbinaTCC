@@ -15,20 +15,22 @@
 <body>
     <header class="header">
         <div class="container">
-            <a asp-controller="Home" asp-action="Index" class="logo">
+            <a href="/Home/Index" class="logo">
                 <h1>BARBINA</h1>
                 <span>RESTAURANTE & EXPERIÊNCIAS</span>
             </a>
             <nav class="nav">
                 <ul>
-                    <li><a asp-controller="Home" asp-action="Index" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">Início</a></li>
-                    <li><a asp-controller="Home" asp-action="Cardapio" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Cardapio" ? "active" : "")">Cardápio</a></li>
-                    <li><a asp-controller="Home" asp-action="Ambientes" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Ambientes" ? "active" : "")">Ambientes</a></li>
-                    <li><a asp-controller="Home" asp-action="Reservas" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Reservas" ? "active" : "")">Reservas</a></li>
-                    <li><a asp-controller="Home" asp-action="Contato" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Contato" ? "active" : "")">Contato</a></li>
+                    <li><a href="/">Início</a></li>
+                    <li><a href="/Home/Cardapio">Cardápio</a></li>
+                    <li><a href="/Home/Ambientes">Ambientes</a></li>
+                    <li><a href="/Home/Reservas">Reservas</a></li>
+                    <li><a href="/Home/Contato">Contato</a></li>
                 </ul>
             </nav>
-            <div class="menu-toggle"><i class="fas fa-bars"></i></div>
+            <div class="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </div>
         </div>
     </header>
 
@@ -55,7 +57,6 @@
                     <h4>Contato</h4>
                     <p><i class="fas fa-map-marker-alt"></i> Av. Pedro Ometto, 700 - Centro, Barra Bonita - SP</p>
                     <p><i class="fas fa-phone"></i> (14) 3438-1255</p>
-                    <a href="/admin" class="admin-access">Acesso administrativo</a>
                 </div>
             </div>
             <div class="footer-bottom">

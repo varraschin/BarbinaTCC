@@ -2,8 +2,16 @@
 @{ ViewData["Title"] = "Novo Produto"; Layout = "_AdminLayout"; }
 
 <div class="card" style="max-width:700px;">
-    <div class="card-header"><h3><i class="fas fa-plus-circle" style="margin-right:10px;"></i>Novo Produto</h3></div>
+    <div class="card-header">
+        <h3><i class="fas fa-plus-circle" style="margin-right:10px;"></i>Novo Produto</h3>
+    </div>
     <div class="card-body">
+        @if (!Model.Categorias.Any())
+        {
+            <div style="background:rgba(220,53,69,.15);border:1px solid rgba(220,53,69,.35);color:#ff6b7a;border-radius:12px;padding:14px 18px;margin-bottom:20px;">
+                <i class="fas fa-exclamation-circle"></i> Não foi possível carregar as categorias. Verifique se a API está rodando em <strong>localhost:5058</strong>.
+            </div>
+        }
         <form asp-action="Criar" asp-controller="Produtos" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" style="color:#dc3545;margin-bottom:16px;font-size:14px;"></div>
@@ -11,7 +19,7 @@
                 <div class="form-group" style="grid-column:1/-1">
                     <label asp-for="CategoriaId">Categoria *</label>
                     <select asp-for="CategoriaId" asp-items="Model.Categorias">
-                        <option value="">-- Selecione --</option>
+                        <option value="">-- Selecione uma categoria --</option>
                     </select>
                     <span asp-validation-for="CategoriaId" style="color:#dc3545;font-size:12px;"></span>
                 </div>
@@ -25,28 +33,16 @@
                     <textarea asp-for="Descricao" rows="3" placeholder="Descreva o prato..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label asp-for="ValorVenda">Valor de Venda (R$) *</label>
-                    <input asp-for="ValorVenda" type="number" step="0.01" min="0" placeholder="0,00">
-                    <span asp-validation-for="ValorVenda" style="color:#dc3545;font-size:12px;"></span>
-                </div>
-                <div class="form-group">
-                    <label asp-for="ValorCusto">Valor de Custo (R$) *</label>
-                    <input asp-for="ValorCusto" type="number" step="0.01" min="0" placeholder="0,00">
-                </div>
-                <div class="form-group">
                     <label asp-for="Qtde">Estoque *</label>
                     <input asp-for="Qtde" type="number" min="0" placeholder="0">
+                    <span asp-validation-for="Qtde" style="color:#dc3545;font-size:12px;"></span>
                 </div>
                 <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:30px;">
                     <input asp-for="Destaque" type="checkbox" style="width:auto;">
                     <label asp-for="Destaque" style="margin:0;cursor:pointer;">Produto em Destaque</label>
                 </div>
-                <div class="form-group" style="grid-column:1/-1">
-                    <label asp-for="Foto">Foto do Produto</label>
-                    <input asp-for="Foto" type="file" accept="image/*">
-                </div>
             </div>
-            <div style="display:flex;gap:12px;margin-top:8px;">
+            <div style="display:flex;gap:12px;margin-top:20px;">
                 <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar</button>
                 <a href="/admin/produtos" class="btn-secondary">Cancelar</a>
             </div>

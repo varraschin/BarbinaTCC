@@ -841,8 +841,17 @@ section {
 }
 
 
-/* Social links */
+/* Social links e footer-bottom */
 .social-links { display: flex; gap: 15px; margin-top: 15px; }
 .social-links a { color: var(--white); font-size: 1.4rem; transition: var(--transition); }
 .social-links a:hover { color: var(--primary-color); transform: translateY(-3px); }
 .footer-bottom { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 25px; text-align: center; opacity: 0.6; font-size: 0.9rem; }
+
+/* Mensagem categoria vazia no cardápio */
+.menu-empty-msg {
+    text-align: center;
+    color: #999;
+    padding: 32px 0;
+    font-style: italic;
+    font-size: 0.95rem;
+}

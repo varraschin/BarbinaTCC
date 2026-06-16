@@ -27,13 +27,21 @@ public class ProdutosController : Controller
 
     private async Task<List<SelectListItem>> GetCategoriasSelectList(int selectedId = 0)
     {
-        var cats = await _apiService.GetAsync<List<CategoriaDto>>("categorias");
-        return cats.Select(c => new SelectListItem
+        try
         {
-            Value = c.Id.ToString(),
-            Text = c.Nome,
-            Selected = c.Id == selectedId
-        }).ToList();
+            var cats = await _apiService.GetAsync<List<CategoriaDto>>("categorias");
+            return cats.Select(c => new SelectListItem
+            {
+                Value = c.Id.ToString(),
+                Text = c.Nome,
+                Selected = c.Id == selectedId
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao buscar categorias para o select");
+            return new List<SelectListItem>();
+        }
     }
 
     [HttpGet("")]
@@ -43,14 +51,12 @@ public class ProdutosController : Controller
         try
         {
             var produtos = await _apiService.GetAsync<List<ProdutoDto>>("produtos");
-            ViewBag.AdminNome = HttpContext.Session.GetString("AdminNome");
-            ViewBag.AdminFoto = HttpContext.Session.GetString("AdminFoto");
             return View(produtos);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao listar produtos");
-            TempData["Erro"] = "Erro ao carregar produtos.";
+            TempData["Erro"] = "Erro ao carregar produtos. Verifique se a API está rodando.";
             return View(new List<ProdutoDto>());
         }
     }
@@ -63,8 +69,6 @@ public class ProdutosController : Controller
         {
             Categorias = await GetCategoriasSelectList()
         };
-        ViewBag.AdminNome = HttpContext.Session.GetString("AdminNome");
-        ViewBag.AdminFoto = HttpContext.Session.GetString("AdminFoto");
         return View(vm);
     }
 
@@ -85,16 +89,10 @@ public class ProdutosController : Controller
             form.Add(new StringContent(vm.Nome), "nome");
             form.Add(new StringContent(vm.Descricao ?? ""), "descricao");
             form.Add(new StringContent(vm.Qtde.ToString()), "qtde");
-            form.Add(new StringContent(vm.ValorCusto.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)), "valorCusto");
-            form.Add(new StringContent(vm.ValorVenda.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)), "valorVenda");
+            form.Add(new StringContent("0"), "valorCusto");
+            form.Add(new StringContent("0"), "valorVenda");
             form.Add(new StringContent(vm.Destaque.ToString().ToLower()), "destaque");
-            if (vm.Foto != null && vm.Foto.Length > 0)
-            {
-                var stream = vm.Foto.OpenReadStream();
-                var fileContent = new StreamContent(stream);
-                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(vm.Foto.ContentType);
-                form.Add(fileContent, "foto", vm.Foto.FileName);
-            }
+
             await _apiService.PostFormAsync<ProdutoDto>("produtos", form);
             TempData["Sucesso"] = "Produto criado com sucesso!";
             return RedirectToAction("Index");
@@ -122,15 +120,10 @@ public class ProdutosController : Controller
                 Nome = p.Nome,
                 Descricao = p.Descricao,
                 Qtde = p.Qtde,
-                ValorCusto = p.ValorCusto,
-                ValorVenda = p.ValorVenda,
                 Destaque = p.Destaque,
-                FotoAtual = p.Foto,
                 CategoriaNome = p.CategoriaNome,
                 Categorias = await GetCategoriasSelectList(p.CategoriaId)
             };
-            ViewBag.AdminNome = HttpContext.Session.GetString("AdminNome");
-            ViewBag.AdminFoto = HttpContext.Session.GetString("AdminFoto");
             return View(vm);
         }
         catch (Exception ex)
@@ -159,16 +152,10 @@ public class ProdutosController : Controller
             form.Add(new StringContent(vm.Nome), "nome");
             form.Add(new StringContent(vm.Descricao ?? ""), "descricao");
             form.Add(new StringContent(vm.Qtde.ToString()), "qtde");
-            form.Add(new StringContent(vm.ValorCusto.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)), "valorCusto");
-            form.Add(new StringContent(vm.ValorVenda.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)), "valorVenda");
+            form.Add(new StringContent("0"), "valorCusto");
+            form.Add(new StringContent("0"), "valorVenda");
             form.Add(new StringContent(vm.Destaque.ToString().ToLower()), "destaque");
-            if (vm.Foto != null && vm.Foto.Length > 0)
-            {
-                var stream = vm.Foto.OpenReadStream();
-                var fileContent = new StreamContent(stream);
-                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(vm.Foto.ContentType);
-                form.Add(fileContent, "foto", vm.Foto.FileName);
-            }
+
             await _apiService.PutFormAsync<ProdutoDto>($"produtos/{id}", form);
             TempData["Sucesso"] = "Produto atualizado com sucesso!";
             return RedirectToAction("Index");

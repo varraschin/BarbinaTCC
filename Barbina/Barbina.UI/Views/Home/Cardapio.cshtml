@@ -1,0 +1,175 @@
+@{ ViewData["Title"] = "Cardápio | Restaurante Barbina"; Layout = "_Layout"; }
+
+<section class="hero-page"
+    style="background-image: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1920&q=80');">
+    <div class="hero-content">
+        <h2>Nosso Cardápio</h2>
+        <p>Uma seleção de pratos refinados, preparados com arte e paixão.</p>
+    </div>
+</section>
+
+<section class="menu">
+    <div class="container">
+        <div class="section-header">
+            <h2>Obras de Arte Comestíveis</h2>
+            <p>Descubra as categorias que compõem a nossa experiência gastronômica.</p>
+        </div>
+
+        <div class="menu-categories">
+            <button type="button" class="category-btn active" data-category="entradas">Entradas</button>
+            <button type="button" class="category-btn" data-category="principais">Pratos Principais</button>
+            <button type="button" class="category-btn" data-category="bebidas">Bebidas</button>
+            <button type="button" class="category-btn" data-category="sobremesas">Sobremesas</button>
+        </div>
+
+        <div class="menu-items active" id="entradas">
+            <div id="items-entradas"></div>
+        </div>
+        <div class="menu-items" id="principais">
+            <div id="items-principais"></div>
+        </div>
+        <div class="menu-items" id="bebidas">
+            <div id="items-bebidas"></div>
+        </div>
+        <div class="menu-items" id="sobremesas">
+            <div id="items-sobremesas"></div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    const STORAGE_KEY = 'barbina_cms_v2';
+
+    // Mapeamento: categoria do admin → id do container na página
+    const CATEGORY_MAP = {
+        'Entradas':          'items-entradas',
+        'Pratos Principais': 'items-principais',
+        'Bebidas':           'items-bebidas',
+        'Sobremesas':        'items-sobremesas'
+    };
+
+    // Botões do menu de categorias
+    const CATEGORY_BTN_MAP = {
+        'Entradas':          'entradas',
+        'Pratos Principais': 'principais',
+        'Bebidas':           'bebidas',
+        'Sobremesas':        'sobremesas'
+    };
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = String(text ?? '');
+        return div.innerHTML;
+    }
+
+    function loadMenuFromAdmin() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                const db = JSON.parse(raw);
+                if (Array.isArray(db.menu)) return db.menu;
+            }
+        } catch (e) {
+            console.warn('Erro ao ler cardápio do admin:', e);
+        }
+        return null;
+    }
+
+    function buildItemHtml(item) {
+        // NÃO usa anim-fade-up para evitar itens invisíveis (opacity:0 sem .visible)
+        return `
+            <div class="menu-item">
+                <div class="item-info">
+                    <h3>${escapeHtml(item.name)}</h3>
+                    <p>${escapeHtml(item.description)}</p>
+                </div>
+            </div>`;
+    }
+
+    function renderMenu() {
+        const menu = loadMenuFromAdmin();
+
+        Object.entries(CATEGORY_MAP).forEach(([category, containerId]) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            if (!menu) {
+                // localStorage ainda não existe (admin nunca foi aberto)
+                container.innerHTML = '<p class="menu-empty-msg">Nenhum item cadastrado ainda.</p>';
+                return;
+            }
+
+            const items = menu.filter(item => item.category === category);
+
+            if (items.length === 0) {
+                // Categoria existe mas está vazia - mostra mensagem, não desaparece
+                container.innerHTML = '<p class="menu-empty-msg">Nenhum item cadastrado nesta categoria.</p>';
+            } else {
+                container.innerHTML = items.map(buildItemHtml).join('');
+            }
+        });
+
+        // Reinicializar troca de abas (o main.js já faz isso, mas por segurança)
+        initCategoryButtons();
+    }
+
+    function initCategoryButtons() {
+        const btns = document.querySelectorAll('.category-btn');
+        btns.forEach(btn => {
+            // Remove listener antigo clonando o botão
+            const clone = btn.cloneNode(true);
+            btn.parentNode.replaceChild(clone, btn);
+        });
+
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.menu-items').forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+                const targetId = this.getAttribute('data-category');
+                const target = document.getElementById(targetId);
+                if (target) target.classList.add('active');
+            });
+        });
+    }
+
+    /**
+     * Ativa a categoria indicada pelo #hash da URL (ex: vindo da Home,
+     * "/Home/Cardapio#principais"), permitindo abrir o Cardápio já
+     * posicionado na categoria correta, sem o usuário precisar procurá-la.
+     */
+    function activateCategoryFromHash() {
+        const hash = window.location.hash.replace('#', '');
+        if (!hash) return;
+
+        const targetBtn = document.querySelector(`.category-btn[data-category="${hash}"]`);
+        const targetSection = document.getElementById(hash);
+        if (!targetBtn || !targetSection) return;
+
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.menu-items').forEach(s => s.classList.remove('active'));
+        targetBtn.classList.add('active');
+        targetSection.classList.add('active');
+
+        // A seção alvo estava com display:none até agora (não-ativa); rolamos
+        // até ela só depois de torná-la visível.
+        document.querySelector('.menu')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Rodar quando o DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMenu();
+            activateCategoryFromHash();
+        });
+    } else {
+        renderMenu();
+        activateCategoryFromHash();
+    }
+})();
+</script>
+}

@@ -1,0 +1,163 @@
+
+@{ ViewData["Title"] = "Restaurante Barbina | Sabores que Conquistam"; Layout = "_Layout"; }
+
+<section class="hero" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1920&q=80');">
+    <div class="container">
+        <div class="hero-content">
+            <h2 class="anim-fade-up">A Arte da Gastronomia Clássica</h2>
+            <p class="anim-fade-up">Onde a tradição encontra a inovação, em um ambiente de sofisticação e sabor.</p>
+            <div class="hero-buttons anim-fade-up">
+                <a href="/Home/Reservas" class="btn btn-primary">Fazer Reserva</a>
+                <a href="/Home/Cardapio" class="btn btn-secondary">Explorar Cardápio</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="philosophy">
+    <div class="container anim-fade-up">
+        <div class="section-header">
+            <h2>Nossa Essência</h2>
+            <p>Acreditamos que cada prato é uma forma de arte. Por isso, selecionamos apenas os ingredientes mais frescos e locais para criar sabores memoráveis.</p>
+        </div>
+    </div>
+</section>
+
+<section class="food-gallery">
+    <div class="container">
+        <div class="section-header">
+            <h2>Criações do Chef</h2>
+            <p>Explore os sabores que definem a experiência Barbina.</p>
+        </div>
+        <div class="food-gallery-grid">
+            <a href="/Home/Cardapio#entradas" class="plate-card anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=880&q=80" alt="Entradas" loading="lazy">
+                <div class="plate-overlay"><h3>Entradas</h3></div>
+            </a>
+            <a href="/Home/Cardapio#principais" class="plate-card anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=880&q=80" alt="Pratos Principais" loading="lazy">
+                <div class="plate-overlay"><h3>Pratos Principais</h3></div>
+            </a>
+            <a href="/Home/Cardapio#bebidas" class="plate-card anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=880&q=80" alt="Bebidas" loading="lazy">
+                <div class="plate-overlay"><h3>Bebidas</h3></div>
+            </a>
+            <a href="/Home/Cardapio#sobremesas" class="plate-card anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=880&q=80" alt="Sobremesas" loading="lazy">
+                <div class="plate-overlay"><h3>Sobremesas</h3></div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="food-gallery" style="background-color: var(--white);">
+    <div class="container">
+        <div class="section-header">
+            <h2>Sinta a Atmosfera Barbina</h2>
+            <p>Espaços exclusivos desenhados para tornar cada momento inesquecível.</p>
+        </div>
+        <div class="food-gallery-grid">
+            <a href="/Home/Ambientes" class="plate-card anim-fade-up" data-ambiente-section="Salao Principal">
+                <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" alt="Salão Principal" loading="lazy">
+                <div class="plate-overlay"><h3>Salão Principal</h3><span style="font-size:.9rem;color:var(--primary-color)">Conhecer Ambiente</span></div>
+            </a>
+            <a href="/Home/Ambientes" class="plate-card anim-fade-up" data-ambiente-section="Area de Balcao">
+                <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80" alt="Área de Balcão" loading="lazy">
+                <div class="plate-overlay"><h3>Área de Balcão</h3><span style="font-size:.9rem;color:var(--primary-color)">Conhecer Ambiente</span></div>
+            </a>
+            <a href="/Home/Ambientes" class="plate-card anim-fade-up" data-ambiente-section="Espaco Privativo">
+                <img src="https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80" alt="Espaço Privativo" loading="lazy">
+                <div class="plate-overlay"><h3>Espaço Privativo</h3><span style="font-size:.9rem;color:var(--primary-color)">Conhecer Ambiente</span></div>
+            </a>
+            <a href="/Home/Ambientes" class="plate-card anim-fade-up" data-ambiente-section="Cozinha Show">
+                <img src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80" alt="Cozinha Show" loading="lazy">
+                <div class="plate-overlay"><h3>Cozinha Show</h3><span style="font-size:.9rem;color:var(--primary-color)">Conhecer Ambiente</span></div>
+            </a>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+(function () {
+    // Mesma fonte de dados usada na página Ambientes (localStorage do admin),
+    // garantindo que imagem e título fiquem sempre sincronizados entre as duas páginas.
+    try {
+        const raw = localStorage.getItem('barbina_cms_v2');
+        if (!raw) return;
+        const db = JSON.parse(raw);
+        if (!Array.isArray(db.environments)) return;
+
+        document.querySelectorAll('[data-ambiente-section]').forEach((card) => {
+            const sectionKey = card.getAttribute('data-ambiente-section');
+            const candidates = db.environments.filter((e) => !e.isCarousel && e.section === sectionKey);
+            if (!candidates.length) return;
+            const chosen = candidates.find((e) => e.isActive) || candidates[0];
+            const img = card.querySelector('img');
+            const h3 = card.querySelector('h3');
+            if (img && chosen.image) img.src = chosen.image;
+            if (h3 && chosen.title) h3.textContent = chosen.title;
+        });
+    } catch (e) {
+        // Mantém as imagens/títulos padrão já presentes no HTML.
+    }
+})();
+</script>
+}
+
+<section class="feature-section">
+    <div class="container">
+        <div class="feature-content">
+            <div class="feature-image anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=1000&q=80" alt="Prato de assinatura" loading="lazy">
+            </div>
+            <div class="feature-text anim-fade-up">
+                <div class="section-header"><h2>O Prato de Assinatura</h2></div>
+                <p>Nosso Filé Mignon Barbina é selado à perfeição, regado com um molho de vinho tinto reduzido lentamente e servido sobre um cremoso risoto de parmesão.</p>
+                <a href="/Home/Cardapio" class="btn btn-primary">Descubra no Cardápio</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="nossa-historia">
+    <div class="container">
+        <div class="historia-content">
+            <div class="historia-text anim-fade-up">
+                <div class="section-header"><h2>Nossa História</h2></div>
+                <p>Fundado em 2005 em Barra Bonita, o Restaurante Barbina nasceu do sonho de unir tradição e alta gastronomia.</p>
+            </div>
+            <div class="historia-imagem anim-fade-up">
+                <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=2070&q=80" alt="Chef cozinhando">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="testimonials">
+    <div class="container">
+        <div class="section-header"><h2>O Que Nossos Clientes Dizem</h2></div>
+        <div class="testimonials-grid">
+            <div class="testimonial-card anim-fade-up">
+                <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                <blockquote>"Uma experiência gastronômica impecável! O atendimento é de primeira."</blockquote>
+                <footer>- Mariana Almeida</footer>
+            </div>
+            <div class="testimonial-card anim-fade-up">
+                <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+                <blockquote>"Lugar perfeito para uma comemoração especial. Recomendo o espaço privativo."</blockquote>
+                <footer>- Rafael Costa</footer>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta-reserva">
+    <div class="container">
+        <div class="cta-content">
+            <h2 class="anim-fade-up">Viva a Experiência Barbina</h2>
+            <p class="anim-fade-up">Garanta seu lugar e desfrute de momentos memoráveis.</p>
+            <a href="/Home/Reservas" class="btn btn-primary anim-fade-up">Reservar Agora</a>
+        </div>
+    </div>
+</section>

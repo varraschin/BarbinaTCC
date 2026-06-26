@@ -1,0 +1,61 @@
+@{ ViewData["Title"] = "Ambientes"; Layout = "_Layout"; }
+
+<main>
+    <!-- HERO CARROSSEL - igual ao galeria-ambientes.html original -->
+    <section class="hero-carousel" id="heroCarousel">
+        <div class="carousel-container" id="carouselContainer">
+            <!-- slides injetados via JS -->
+        </div>
+        <button class="carousel-btn prev-btn" id="prevBtn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="carousel-btn next-btn" id="nextBtn">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        <div class="carousel-dots" id="carouselDots"></div>
+    </section>
+
+    <!-- STORYTELLING -->
+    <section class="storytelling">
+        <div class="container">
+            <div class="section-header">
+                <h2>Espaços que Contam Histórias</h2>
+                <p>Cada ambiente foi pensado para proporcionar experiências únicas e momentos inesquecíveis.</p>
+            </div>
+            <div class="story-grid" id="storyGrid">
+                <!-- elementos injetados via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS SECTION -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 style="color: var(--white);">Números que Impressionam</h2>
+                <p style="color: rgba(255,255,255,0.8);">Estrutura planejada para receber você com excelência</p>
+            </div>
+            <div class="stats-grid" id="statsGrid">
+                <!-- dados via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA RESERVA -->
+    <section class="cta-reserva">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="anim-fade-up">Viva a Experiência Barbina</h2>
+                <p class="anim-fade-up">Escolha seu ambiente preferido e faça sua reserva agora mesmo.</p>
+                <a href="/Home/Reservas" class="btn btn-primary anim-fade-up">Reservar Agora</a>
+            </div>
+        </div>
+    </section>
+</main>
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/ambiente.css" asp-append-version="true">
+}
+@section Scripts {
+    <script src="~/js/ambiente.js" asp-append-version="true"></script>
+}

@@ -118,25 +118,25 @@ public class AppDbContext : IdentityDbContext<Usuario>
             new Ambiente {
                 Id = 1, Titulo = "Salão Principal", Tag = "Elegância & Sofisticação",
                 Descricao = "Amplo, iluminado e decorado com detalhes que remetem à tradição italiana. Perfeito para jantares especiais e momentos em família.",
-                Foto = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1920&q=80",
+                Foto = "/img/ambientes/6184fc42-4f25-44fe-ba5a-c1291a99854a.jpg",
                 IsCarousel = true, CarouselOrder = 1
             },
             new Ambiente {
                 Id = 2, Titulo = "Área de Balcão", Tag = "Descontração & Sabor",
                 Descricao = "Espaço acolhedor para apreciar nossas caipirinhas e porções enquanto acompanha a movimentação da cozinha.",
-                Foto = "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1920&q=80",
+                Foto = "/img/ambientes/c0d7b9cd-932d-4951-94fe-5057af6d702f.jpg",
                 IsCarousel = true, CarouselOrder = 2
             },
             new Ambiente {
-                Id = 3, Titulo = "Espaço Privativo", Tag = "Privacidade & Exclusividade",
-                Descricao = "Ambiente reservado para celebrações especiais, reuniões de negócios ou momentos íntimos com quem você ama.",
-                Foto = "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1920&q=80",
+                Id = 3, Titulo = "Área ao Ar Livre", Tag = "Frescor & Tranquilidade",
+                Descricao = "Ambiente ao ar livre, perfeito para celebrações especiais, reuniões de negócios ou momentos inesquecíveis com quem você ama.",
+                Foto = "/img/ambientes/5f8b5a28-4f6b-4b5f-84b4-6224c4916fb2.jpg",
                 IsCarousel = true, CarouselOrder = 3
             },
             new Ambiente {
-                Id = 4, Titulo = "Cozinha Show", Tag = "Arte & Gastronomia",
-                Descricao = "Acompanhe de perto a preparação dos nossos pratos e viva uma experiência sensorial única.",
-                Foto = "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1920&q=80",
+                Id = 4, Titulo = "Espaço Kids", Tag = "Diversão & Conforto",
+                Descricao = "Um espaço pensado para a diversão das crianças, com conforto e tranquilidade para toda a família.",
+                Foto = "/img/ambientes/6dbcca96-73ca-4c5c-bdaf-9703862907ed.jpg",
                 IsCarousel = true, CarouselOrder = 4
             },
 
@@ -144,25 +144,25 @@ public class AppDbContext : IdentityDbContext<Usuario>
             new Ambiente {
                 Id = 5, Titulo = "Salão Principal", Subtitulo = "Tradição & Conforto", Secao = "Salao Principal",
                 Descricao = "Inspirado nos antigos salões italianos, este espaço foi projetado para receber famílias e amigos com todo aconchego. Os tons terrosos e a iluminação suave criam uma atmosfera perfeita para longas conversas e refeições memoráveis.",
-                Foto = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
+                Foto = "/img/ambientes/1471ea77-b600-469b-bd01-c20e4b05cb59.jpg",
                 IsCarousel = false, IsActive = true
             },
             new Ambiente {
                 Id = 6, Titulo = "Área de Balcão", Subtitulo = "Encontros & Amigos", Secao = "Area de Balcao",
                 Descricao = "O balcão é o coração pulsante do Barbina. É ali que as melhores histórias começam, acompanhadas de uma caipirinha gelada e porções generosas.",
-                Foto = "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80",
+                Foto = "/img/ambientes/1d0a4841-aa75-4b7b-ac75-ebbfa65f7487.jpg",
                 IsCarousel = false, IsActive = true
             },
             new Ambiente {
-                Id = 7, Titulo = "Espaço Privativo", Subtitulo = "Exclusividade & Celebração", Secao = "Espaco Privativo",
-                Descricao = "Criado para momentos que merecem privacidade, nosso espaço privativo comporta até 20 pessoas e oferece atendimento personalizado.",
-                Foto = "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
+                Id = 7, Titulo = "Área ao Ar Livre", Subtitulo = "Exclusividade & Celebração", Secao = "Área ao Ar Livre",
+                Descricao = "Perfeita para aproveitar bons momentos em um ambiente aberto e agradável, nossa área ao ar livre acomoda até 20 pessoas e oferece atendimento personalizado para tornar sua experiência ainda mais especial.",
+                Foto = "/img/ambientes/e229faf0-4faf-4cc5-b9f1-fe67400084a0.jpg",
                 IsCarousel = false, IsActive = true
             },
             new Ambiente {
-                Id = 8, Titulo = "Cozinha Show", Subtitulo = "Experiência Sensorial", Secao = "Cozinha Show",
-                Descricao = "Acompanhe o preparo dos pratos em tempo real e viva uma imersão no universo Barbina, onde aroma, calor e técnica se unem.",
-                Foto = "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80",
+                Id = 8, Titulo = "Espaço Kids", Subtitulo = "Diversão & Alegria", Secao = "Espaço Kids",
+                Descricao = "Um cantinho especial para as crianças brincarem com segurança e entretenimento, proporcionando mais tranquilidade e conforto para toda a família.",
+                Foto = "/img/ambientes/0b0d1d26-7ea6-4d24-8bf9-6efc1b438312.jpg",
                 IsCarousel = false, IsActive = true
             }
         );

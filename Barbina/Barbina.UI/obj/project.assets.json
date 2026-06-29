@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\User\\Downloads\\Barbina_TCC_v20\\Barbina\\Barbina.UI\\Barbina.UI.csproj",
+      "projectUniqueName": "C:\\Users\\User\\Desktop\\BarbinaTCC\\Barbina\\Barbina.UI\\Barbina.UI.csproj",
       "projectName": "Barbina.UI",
-      "projectPath": "C:\\Users\\User\\Downloads\\Barbina_TCC_v20\\Barbina\\Barbina.UI\\Barbina.UI.csproj",
+      "projectPath": "C:\\Users\\User\\Desktop\\BarbinaTCC\\Barbina\\Barbina.UI\\Barbina.UI.csproj",
       "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\User\\Downloads\\Barbina_TCC_v20\\Barbina\\Barbina.UI\\obj\\",
+      "outputPath": "C:\\Users\\User\\Desktop\\BarbinaTCC\\Barbina\\Barbina.UI\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

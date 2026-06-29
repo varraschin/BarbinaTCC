@@ -33,8 +33,6 @@ const FALLBACK_CAROUSEL = [
     }
 ];
 
-const SECTION_ORDER = ["Salao Principal", "Area de Balcao", "Espaco Privativo", "Cozinha Show"];
-
 const FALLBACK_STORYTELLING = [
     { section: "Salao Principal", image: FALLBACK_CAROUSEL[0].image, subtitle: "Tradição & Conforto", title: "Salão Principal", description: "Inspirado nos antigos salões italianos, este espaço foi projetado para receber famílias e amigos com todo aconchego." },
     { section: "Area de Balcao", image: FALLBACK_CAROUSEL[1].image, subtitle: "Encontros & Amigos", title: "Área de Balcão", description: "O balcão é o coração pulsante do Barbina. É ali que as melhores histórias começam." },
@@ -64,18 +62,28 @@ async function loadStorytelling() {
     try {
         const data = await fetchJson('ambientes/galeria');
         if (Array.isArray(data) && data.length > 0) {
-            return SECTION_ORDER.map((sectionKey) => {
-                const fb = FALLBACK_STORYTELLING.find((f) => f.section === sectionKey);
-                const sectionItems = data.filter((e) => e.secao === sectionKey);
-                const chosen = sectionItems.find((e) => e.isActive) || sectionItems[0];
-                return {
-                    section: sectionKey,
-                    image: chosen && chosen.foto ? chosen.foto : (fb ? fb.image : ''),
-                    subtitle: chosen && chosen.subtitulo ? chosen.subtitulo : (fb ? fb.subtitle : ''),
-                    title: chosen && chosen.titulo ? chosen.titulo : (fb ? fb.title : sectionKey),
-                    description: chosen && chosen.descricao ? chosen.descricao : (fb ? fb.description : '')
-                };
+            // As seções são definidas dinamicamente pelo que existe no banco (campo
+            // "Secao" de cada ambiente), na ordem em que aparecem — não há mais uma
+            // lista fixa de nomes de seção aqui no código. Isso permite renomear,
+            // adicionar ou remover seções inteiramente pelo painel administrativo.
+            const sections = [];
+            data.forEach((e) => {
+                if (e.secao && !sections.includes(e.secao)) sections.push(e.secao);
             });
+
+            if (sections.length > 0) {
+                return sections.map((sectionKey) => {
+                    const sectionItems = data.filter((e) => e.secao === sectionKey);
+                    const chosen = sectionItems.find((e) => e.isActive) || sectionItems[0];
+                    return {
+                        section: sectionKey,
+                        image: chosen.foto || '',
+                        subtitle: chosen.subtitulo || '',
+                        title: chosen.titulo || sectionKey,
+                        description: chosen.descricao || ''
+                    };
+                });
+            }
         }
     } catch (err) {
         console.warn('Não foi possível carregar a galeria de ambientes da API, usando dados padrão.', err);

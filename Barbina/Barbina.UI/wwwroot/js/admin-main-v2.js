@@ -184,6 +184,7 @@
     // ---------- Modal genérico de ambiente (carrossel ou galeria) ----------
     async function openEnvironmentModal(forCarousel = false, envId = null) {
         let editing = null;
+        let existingSections = [];
         if (envId) {
             try {
                 editing = mapAmbiente(await apiGet(`ambientes/${envId}`));
@@ -191,6 +192,14 @@
                 showToast(err.message, 'error');
                 return;
             }
+        }
+        if (!forCarousel) {
+            try {
+                const galeria = await apiGet('ambientes/galeria');
+                galeria.forEach((a) => {
+                    if (a.secao && !existingSections.includes(a.secao)) existingSections.push(a.secao);
+                });
+            } catch { /* sem sugestões se a API falhar; o campo continua editável normalmente */ }
         }
 
         const modal = document.getElementById('globalModal');
@@ -211,14 +220,13 @@
             : `
                 <div class="form-group">
                     <label for="envSection">Seção do site *</label>
-                    <select id="envSection" required>
-                        <option value="">Selecione a seção</option>
-                        <option value="Salao Principal" ${editing && editing.section === 'Salao Principal' ? 'selected' : ''}>Salão Principal</option>
-                        <option value="Area de Balcao" ${editing && editing.section === 'Area de Balcao' ? 'selected' : ''}>Área de Balcão</option>
-                        <option value="Espaco Privativo" ${editing && editing.section === 'Espaco Privativo' ? 'selected' : ''}>Área ao Ar Livre</option>
-                        <option value="Cozinha Show" ${editing && editing.section === 'Cozinha Show' ? 'selected' : ''}>Espaço Kids</option>
-                    </select>
-                    <small style="color:var(--gray-text);font-size:12px;">Define em qual bloco da página Ambientes esta imagem será exibida.</small>
+                    <input type="text" id="envSection" list="envSectionOptions" required
+                           placeholder="Ex: Salão Principal, Área ao Ar Livre…"
+                           value="${editing ? escapeHtml(editing.section) : ''}">
+                    <datalist id="envSectionOptions">
+                        ${existingSections.map((s) => `<option value="${escapeHtml(s)}"></option>`).join('')}
+                    </datalist>
+                    <small style="color:var(--gray-text);font-size:12px;">Define em qual bloco da página Ambientes esta imagem será exibida. Digite o nome de uma seção já existente para substituir a imagem dela, ou um nome novo para criar uma seção nova.</small>
                 </div>
                 <div class="form-group">
                     <label for="envSubtitle">Subtítulo do ambiente</label>

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Barbina.UI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aab7534d1f92f86b5f85ae70dc85b01036272154")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d6bcaf8a7fb4796033eb5e6f63c1bbc9230c2dfe")]
 [assembly: System.Reflection.AssemblyProductAttribute("Barbina.UI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Barbina.UI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

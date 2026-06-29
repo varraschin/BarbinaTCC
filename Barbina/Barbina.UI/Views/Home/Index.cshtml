@@ -1,7 +1,7 @@
 
 @{ ViewData["Title"] = "Restaurante Barbina | Sabores que Conquistam"; Layout = "_Layout"; }
 
-<section class="hero" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1920&q=80');">
+<section class="hero" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('@SiteImages.HomeHero');">
     <div class="container">
         <div class="hero-content">
             <h2 class="anim-fade-up">A Arte da Gastronomia Clássica</h2>
@@ -30,20 +30,20 @@
             <p>Explore os sabores que definem a experiência Barbina.</p>
         </div>
         <div class="food-gallery-grid">
-            <a href="/Home/Cardapio#entradas" class="plate-card anim-fade-up">
-                <img src="https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=880&q=80" alt="Entradas" loading="lazy">
+            <a href="/Home/Cardapio#cat-1" class="plate-card anim-fade-up">
+                <img src="@SiteImages.HomeEntradas" alt="Entradas" loading="lazy">
                 <div class="plate-overlay"><h3>Entradas</h3></div>
             </a>
-            <a href="/Home/Cardapio#principais" class="plate-card anim-fade-up">
-                <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=880&q=80" alt="Pratos Principais" loading="lazy">
+            <a href="/Home/Cardapio#cat-2" class="plate-card anim-fade-up">
+                <img src="@SiteImages.HomePratosPrincipais" alt="Pratos Principais" loading="lazy">
                 <div class="plate-overlay"><h3>Pratos Principais</h3></div>
             </a>
-            <a href="/Home/Cardapio#bebidas" class="plate-card anim-fade-up">
-                <img src="https://images.unsplash.com/photo-1551024506-0bccd828d307?auto=format&fit=crop&w=880&q=80" alt="Bebidas" loading="lazy">
+            <a href="/Home/Cardapio#cat-3" class="plate-card anim-fade-up">
+                <img src="@SiteImages.HomeBebidas" alt="Bebidas" loading="lazy">
                 <div class="plate-overlay"><h3>Bebidas</h3></div>
             </a>
-            <a href="/Home/Cardapio#sobremesas" class="plate-card anim-fade-up">
-                <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&w=880&q=80" alt="Sobremesas" loading="lazy">
+            <a href="/Home/Cardapio#cat-4" class="plate-card anim-fade-up">
+                <img src="@SiteImages.HomeSobremesas" alt="Sobremesas" loading="lazy">
                 <div class="plate-overlay"><h3>Sobremesas</h3></div>
             </a>
         </div>
@@ -80,27 +80,29 @@
 @section Scripts {
 <script>
 (function () {
-    // Mesma fonte de dados usada na página Ambientes (localStorage do admin),
-    // garantindo que imagem e título fiquem sempre sincronizados entre as duas páginas.
-    try {
-        const raw = localStorage.getItem('barbina_cms_v2');
-        if (!raw) return;
-        const db = JSON.parse(raw);
-        if (!Array.isArray(db.environments)) return;
+    // Mesma fonte de dados usada na página Ambientes (API real), garantindo que
+    // imagem e título fiquem sempre sincronizados entre as duas páginas.
+    const API_BASE = 'http://localhost:5058/api/';
 
-        document.querySelectorAll('[data-ambiente-section]').forEach((card) => {
-            const sectionKey = card.getAttribute('data-ambiente-section');
-            const candidates = db.environments.filter((e) => !e.isCarousel && e.section === sectionKey);
-            if (!candidates.length) return;
-            const chosen = candidates.find((e) => e.isActive) || candidates[0];
-            const img = card.querySelector('img');
-            const h3 = card.querySelector('h3');
-            if (img && chosen.image) img.src = chosen.image;
-            if (h3 && chosen.title) h3.textContent = chosen.title;
+    fetch(API_BASE + 'ambientes/galeria')
+        .then((res) => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+        .then((ambientes) => {
+            if (!Array.isArray(ambientes)) return;
+
+            document.querySelectorAll('[data-ambiente-section]').forEach((card) => {
+                const sectionKey = card.getAttribute('data-ambiente-section');
+                const candidates = ambientes.filter((e) => e.secao === sectionKey);
+                if (!candidates.length) return;
+                const chosen = candidates.find((e) => e.isActive) || candidates[0];
+                const img = card.querySelector('img');
+                const h3 = card.querySelector('h3');
+                if (img && chosen.foto) img.src = chosen.foto;
+                if (h3 && chosen.titulo) h3.textContent = chosen.titulo;
+            });
+        })
+        .catch(() => {
+            // API indisponível: mantém as imagens/títulos padrão já presentes no HTML.
         });
-    } catch (e) {
-        // Mantém as imagens/títulos padrão já presentes no HTML.
-    }
 })();
 </script>
 }
@@ -109,11 +111,11 @@
     <div class="container">
         <div class="feature-content">
             <div class="feature-image anim-fade-up">
-                <img src="https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=1000&q=80" alt="Prato de assinatura" loading="lazy">
+                <img src="@SiteImages.HomePratoAssinatura" alt="Prato de assinatura" loading="lazy">
             </div>
             <div class="feature-text anim-fade-up">
                 <div class="section-header"><h2>O Prato de Assinatura</h2></div>
-                <p>Nosso Filé Mignon Barbina é selado à perfeição, regado com um molho de vinho tinto reduzido lentamente e servido sobre um cremoso risoto de parmesão.</p>
+                <p>Filé mignon grelhado com presunto, queijo e lascas de parmesão gratinado. Acompanha batatas fritas.</p>
                 <a href="/Home/Cardapio" class="btn btn-primary">Descubra no Cardápio</a>
             </div>
         </div>
@@ -128,7 +130,7 @@
                 <p>Fundado em 2005 em Barra Bonita, o Restaurante Barbina nasceu do sonho de unir tradição e alta gastronomia.</p>
             </div>
             <div class="historia-imagem anim-fade-up">
-                <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=2070&q=80" alt="Chef cozinhando">
+                <img src="@SiteImages.HomeNossaHistoria" alt="Chef cozinhando">
             </div>
         </div>
     </div>
@@ -152,7 +154,7 @@
     </div>
 </section>
 
-<section class="cta-reserva">
+<section class="cta-reserva" style="background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('@SiteImages.CtaReservaFooter');">
     <div class="container">
         <div class="cta-content">
             <h2 class="anim-fade-up">Viva a Experiência Barbina</h2>

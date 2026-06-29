@@ -1,116 +1,104 @@
 /**
- * Barbina CMS — Painel administrativo (v2)
- * Camadas: persistência → domínio → UI (render + eventos)
+ * Barbina CMS — Painel administrativo (v3)
+ * Camadas: API (fetch) → domínio → UI (render + eventos)
+ *
+ * Esta versão substitui o antigo armazenamento em localStorage por chamadas
+ * reais à Barbina.API (.NET + MySQL). Nenhum dado de Cardápio, Ambientes,
+ * Carrossel ou Reservas é mais mantido apenas no navegador: tudo é lido e
+ * gravado diretamente no banco de dados.
  */
-
 (function () {
     'use strict';
 
-    const STORAGE_KEY = 'barbina_cms_v2';
+    // Mesma URL configurada em Barbina.UI/appsettings.json (ApiSettings:BaseUrl).
+    const API_BASE = 'http://localhost:5058/api/';
 
-    const TODAY_ISO = new Date().toISOString().slice(0, 10);
-
-    const DEFAULT_DB = {
-        reservations: [
-            { id: 1, name: 'João Silva', phone: '(14) 99999-1234', date: TODAY_ISO, time: '19:30', people: '4', notes: '', confirmed: false }
-        ],
-        menu: [
-            { id: 1, name: 'Bruschetta Clássica', category: 'Entradas', description: 'Fatias de pão italiano tostado com tomate, alho, azeite e manjericão fresco.' },
-            { id: 2, name: 'Filé Mignon Barbina', category: 'Pratos Principais', description: 'Medalhão selado com molho de vinho tinto reduzido e risoto cremoso de parmesão.' },
-            { id: 3, name: 'Caipirinha Barbina', category: 'Bebidas', description: 'Cachaça premium, limão taiti e toque de pimenta rosa.' },
-            { id: 4, name: 'Brownie com Sorvete', category: 'Sobremesas', description: 'Brownie quente de chocolate belga com sorvete de baunilha e calda de caramelo.' }
-        ],
-        environments: [
-            { id: 1, title: 'Salão Principal', description: 'ambiente aconchegante e familiar', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600', isCarousel: true },
-            { id: 2, title: 'Área de Balcão', description: 'espaço para drinks e porções', image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600', isCarousel: true },
-            { id: 3, title: 'Espaço Privativo', description: 'ambiente reservado para eventos', image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600', isCarousel: false },
-            { id: 4, title: 'Cozinha Show', description: 'acompanhe o preparo dos pratos', image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600', isCarousel: false }
-        ],
-        activities: [
-            { id: 1, action: 'nova reserva', user: 'admin', time: '10:32', icon: 'fa-calendar-check' },
-            { id: 2, action: 'item adicionado', user: 'admin', time: '09:15', icon: 'fa-plus-circle' }
-        ],
-        /** Ordem dos slides no único carrossel da página inicial (IDs de `environments`). */
-        carouselOrder: [1, 2]
-    };
-
-    /** @type {typeof DEFAULT_DB} */
-    let DB;
     let currentModule = 'overview';
 
-    /** Filtros por módulo (estado de UI) */
+    /** Filtros por módulo (estado de UI — não precisa persistir entre sessões). */
     const uiState = {
         reservations: { query: '', selectedDate: todayIso() },
-        menu: { query: '', category: 'all', sort: 'name' },
-        search: { open: false, query: '' }
+        menu: { query: '', category: 'all', sort: 'name' }
     };
+
+    /** Atividades recentes exibidas na Visão Geral — feed simples da sessão atual. */
+    let activities = [];
 
     let overviewCharts = { reservationTrend: null, menuCategories: null };
 
-    // ---------- Persistência ----------
-    function loadDb() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return structuredClone(DEFAULT_DB);
-            const parsed = JSON.parse(raw);
-            return migrateDb(parsed);
-        } catch {
-            return structuredClone(DEFAULT_DB);
-        }
+    /** Guarda os dados já carregados da Visão Geral para os gráficos (evita refazer fetch). */
+    let lastOverviewData = null;
+
+    // ---------- Camada de API ----------
+    async function apiGet(path) {
+        const res = await fetch(API_BASE + path);
+        if (!res.ok) throw new Error(`Não foi possível carregar "${path}" (HTTP ${res.status}).`);
+        if (res.status === 204) return null;
+        return res.json();
     }
 
-    function migrateDb(data) {
-        if (!data.activities) data.activities = structuredClone(DEFAULT_DB.activities);
-        ['reservations', 'menu', 'environments'].forEach((k) => {
-            if (!Array.isArray(data[k])) data[k] = structuredClone(DEFAULT_DB[k]);
-        });
-        // Migração: o sistema de mesas/status foi descontinuado em favor de um
-        // fluxo simples de confirmação (booleano `confirmed`).
-        data.reservations.forEach((r) => {
-            if (typeof r.confirmed !== 'boolean') {
-                r.confirmed = r.status === 'confirmed';
+    async function extractErrorMessage(res) {
+        try {
+            const data = await res.json();
+            if (data && data.message) return data.message;
+            if (data && typeof data === 'object') {
+                const firstKey = Object.keys(data)[0];
+                if (firstKey && Array.isArray(data[firstKey])) return data[firstKey][0];
             }
-            delete r.status;
-            delete r.table;
+        } catch { /* corpo não era JSON */ }
+        return `Erro inesperado (HTTP ${res.status}).`;
+    }
+
+    async function apiSendForm(path, method, formData) {
+        const res = await fetch(API_BASE + path, { method, body: formData });
+        if (!res.ok) throw new Error(await extractErrorMessage(res));
+        if (res.status === 204) return null;
+        return res.json();
+    }
+
+    async function apiSendJson(path, method, data) {
+        const res = await fetch(API_BASE + path, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: data !== undefined ? JSON.stringify(data) : undefined
         });
-        delete data.tables;
-        if (!Array.isArray(data.carouselOrder)) {
-            data.carouselOrder = data.environments
-                .filter((e) => e.isCarousel)
-                .sort((a, b) => a.id - b.id)
-                .map((e) => e.id);
-        }
-        return data;
+        if (!res.ok) throw new Error(await extractErrorMessage(res));
+        if (res.status === 204) return null;
+        return res.json();
     }
 
-    /** Garante que `carouselOrder` e `isCarousel` estão alinhados. */
-    function ensureCarouselOrder() {
-        if (!Array.isArray(DB.carouselOrder)) DB.carouselOrder = [];
-        DB.carouselOrder = DB.carouselOrder.filter((id) => DB.environments.some((e) => e.id === id));
-        DB.environments.forEach((e) => {
-            if (e.isCarousel && !DB.carouselOrder.includes(e.id)) DB.carouselOrder.push(e.id);
-        });
-        DB.environments.forEach((e) => {
-            e.isCarousel = DB.carouselOrder.includes(e.id);
-        });
+    async function apiPatch(path) {
+        const res = await fetch(API_BASE + path, { method: 'PATCH' });
+        if (!res.ok) throw new Error(await extractErrorMessage(res));
+        if (res.status === 204) return null;
+        return res.json();
     }
 
-    function getCarouselSlidesOrdered() {
-        ensureCarouselOrder();
-        return DB.carouselOrder.map((id) => DB.environments.find((e) => e.id === id)).filter(Boolean);
+    async function apiDelete(path) {
+        const res = await fetch(API_BASE + path, { method: 'DELETE' });
+        if (!res.ok) throw new Error(await extractErrorMessage(res));
     }
 
-    function saveDb() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
-        } catch (e) {
-            showToast('Não foi possível salvar localmente (armazenamento cheio?).', 'error');
-        }
+    // ---------- Mapeamento API → forma usada pela UI ----------
+    function mapProduto(p) {
+        return { id: p.id, name: p.nome, category: p.categoriaNome, categoriaId: p.categoriaId, description: p.descricao || '' };
     }
 
-    function nextId(list) {
-        if (!list.length) return 1;
-        return Math.max(...list.map((x) => x.id)) + 1;
+    function mapAmbiente(a) {
+        return {
+            id: a.id, title: a.titulo, subtitle: a.subtitulo || '', tag: a.tag || '',
+            description: a.descricao || '', image: a.foto, section: a.secao || '',
+            isCarousel: !!a.isCarousel, isActive: !!a.isActive, carouselOrder: a.carouselOrder
+        };
+    }
+
+    function mapReserva(r) {
+        return {
+            id: r.id, name: r.nome, phone: r.telefone, email: r.email || '',
+            date: r.data, time: r.hora, people: r.pessoas, type: r.tipo,
+            eventType: r.tipoEvento || '', ambiente: r.ambiente || '', notes: r.observacoes || '',
+            confirmed: !!r.confirmada
+        };
     }
 
     // ---------- Utilitários ----------
@@ -119,10 +107,6 @@
         const s = String(text);
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
         return s.replace(/[&<>"']/g, (ch) => map[ch]);
-    }
-
-    function formatCurrency(v) {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
     }
 
     function formatDate(d) {
@@ -139,6 +123,17 @@
             clearTimeout(t);
             t = setTimeout(() => fn.apply(this, args), ms);
         };
+    }
+
+    function todayIso() {
+        const d = new Date();
+        const tz = d.getTimezoneOffset() * 60000;
+        return new Date(d - tz).toISOString().slice(0, 10);
+    }
+
+    function nextLocalId(list) {
+        if (!list.length) return 1;
+        return Math.max(...list.map((x) => x.id)) + 1;
     }
 
     // ---------- Feedback visual ----------
@@ -170,77 +165,75 @@
         document.body.classList.toggle('loading-active', !!on);
     }
 
-    // ---------- Atividades ----------
     function addActivity(action, icon = 'fa-bell') {
-        DB.activities.unshift({
-            id: nextId(DB.activities),
+        activities.unshift({
+            id: nextLocalId(activities),
             action,
             user: 'admin',
             time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             icon
         });
-        DB.activities = DB.activities.slice(0, 50);
-        saveDb();
+        activities = activities.slice(0, 50);
     }
 
-    // ---------- Upload imagem ----------
-    function uploadImageToBase64(file) {
-        return new Promise((resolve) => {
-            if (!file) return resolve(null);
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
-        });
+    // ---------- Upload de imagem (pré-visualização local apenas) ----------
+    function previewFromFile(file) {
+        return URL.createObjectURL(file);
     }
 
-    // ---------- Utilitário: data de hoje no formato YYYY-MM-DD ----------
-    function todayIso() {
-        const d = new Date();
-        const tz = d.getTimezoneOffset() * 60000;
-        return new Date(d - tz).toISOString().slice(0, 10);
-    }
+    // ---------- Modal genérico de ambiente (carrossel ou galeria) ----------
+    async function openEnvironmentModal(forCarousel = false, envId = null) {
+        let editing = null;
+        if (envId) {
+            try {
+                editing = mapAmbiente(await apiGet(`ambientes/${envId}`));
+            } catch (err) {
+                showToast(err.message, 'error');
+                return;
+            }
+        }
 
-    // ---------- Modal ambiente (layout original: checkbox carrossel) ----------
-    function openEnvironmentModal(forCarousel = false, envId = null) {
-        const editing = envId ? DB.environments.find((e) => e.id === envId) : null;
         const modal = document.getElementById('globalModal');
         const modalBody = document.getElementById('modalBody');
-
         const isCarouselModal = forCarousel;
-        const carouselFields = isCarouselModal ? `
+
+        const carouselFields = isCarouselModal
+            ? `
                 <div class="form-group">
                     <label for="envTag">Texto da tag (exibida sobre a imagem)</label>
-                    <input type="text" id="envTag" placeholder="Ex: Elegancia e Sofisticacao" value="${editing ? escapeHtml(editing.tag || '') : ''}">
-                    <small style="color:var(--gray-text);font-size:12px;">Texto pequeno exibido acima do titulo no slide.</small>
+                    <input type="text" id="envTag" placeholder="Ex: Elegância &amp; Sofisticação" value="${editing ? escapeHtml(editing.tag) : ''}">
+                    <small style="color:var(--gray-text);font-size:12px;">Texto pequeno exibido acima do título no slide.</small>
                 </div>
                 <div class="form-group">
-                    <label for="envDesc">Descricao do slide</label>
-                    <textarea id="envDesc" rows="3">${editing ? escapeHtml(editing.description || '') : ''}</textarea>
-                </div>` : `
+                    <label for="envDesc">Descrição do slide</label>
+                    <textarea id="envDesc" rows="3">${editing ? escapeHtml(editing.description) : ''}</textarea>
+                </div>`
+            : `
                 <div class="form-group">
-                    <label for="envSection">Secao do site *</label>
+                    <label for="envSection">Seção do site *</label>
                     <select id="envSection" required>
-                        <option value="">Selecione a secao</option>
-                        <option value="Salao Principal" ${editing && editing.section === 'Salao Principal' ? 'selected' : ''}>Salao Principal</option>
-                        <option value="Area de Balcao" ${editing && editing.section === 'Area de Balcao' ? 'selected' : ''}>Area de Balcao</option>
-                        <option value="Espaco Privativo" ${editing && editing.section === 'Espaco Privativo' ? 'selected' : ''}>Espaco Privativo</option>
-                        <option value="Cozinha Show" ${editing && editing.section === 'Cozinha Show' ? 'selected' : ''}>Cozinha Show</option>
+                        <option value="">Selecione a seção</option>
+                        <option value="Salao Principal" ${editing && editing.section === 'Salao Principal' ? 'selected' : ''}>Salão Principal</option>
+                        <option value="Area de Balcao" ${editing && editing.section === 'Area de Balcao' ? 'selected' : ''}>Área de Balcão</option>
+                        <option value="Espaco Privativo" ${editing && editing.section === 'Espaco Privativo' ? 'selected' : ''}>Área ao Ar Livre</option>
+                        <option value="Cozinha Show" ${editing && editing.section === 'Cozinha Show' ? 'selected' : ''}>Espaço Kids</option>
                     </select>
-                    <small style="color:var(--gray-text);font-size:12px;">Define em qual bloco da pagina Ambientes esta imagem sera exibida.</small>
+                    <small style="color:var(--gray-text);font-size:12px;">Define em qual bloco da página Ambientes esta imagem será exibida.</small>
                 </div>
                 <div class="form-group">
-                    <label for="envSubtitle">Subtitulo do ambiente</label>
-                    <input type="text" id="envSubtitle" placeholder="Ex: Tradicao e Conforto" value="${editing ? escapeHtml(editing.subtitle || '') : ''}">
+                    <label for="envSubtitle">Subtítulo do ambiente</label>
+                    <input type="text" id="envSubtitle" placeholder="Ex: Tradição &amp; Conforto" value="${editing ? escapeHtml(editing.subtitle) : ''}">
                 </div>
                 <div class="form-group">
-                    <label for="envDesc">Descricao do ambiente</label>
-                    <textarea id="envDesc" rows="4">${editing ? escapeHtml(editing.description || '') : ''}</textarea>
+                    <label for="envDesc">Descrição do ambiente</label>
+                    <textarea id="envDesc" rows="4">${editing ? escapeHtml(editing.description) : ''}</textarea>
                 </div>`;
+
         modalBody.innerHTML = `
             <h2 class="modal-title">${editing ? 'Editar' : isCarouselModal ? 'Novo slide do carrossel' : 'Nova imagem da galeria'}</h2>
             <form id="envForm">
                 <div class="form-group">
-                    <label for="envTitle">Titulo *</label>
+                    <label for="envTitle">Título *</label>
                     <input type="text" id="envTitle" value="${editing ? escapeHtml(editing.title) : ''}" required>
                 </div>
                 ${carouselFields}
@@ -253,16 +246,16 @@
                         <input type="file" id="imageFileInput" accept="image/*" hidden>
                     </div>
                     <div class="env-url-wrap" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-                        <span aria-hidden="true" style="font-size:18px;flex-shrink:0;">Link</span>
-                        <input type="text" id="imageUrlInput" placeholder="Cole uma URL de imagem" value="${editing ? escapeHtml(editing.image) : ''}" style="flex:1;">
+                        <span aria-hidden="true" style="font-size:18px;flex-shrink:0;">🔗</span>
+                        <input type="text" id="imageUrlInput" placeholder="Cole uma URL de imagem" value="${editing && editing.image && editing.image.startsWith('http') ? escapeHtml(editing.image) : ''}" style="flex:1;">
                     </div>
-                    <div id="imagePreviewArea" class="image-preview-area" style="${editing ? '' : 'display:none'}">
-                        <img id="previewImg" alt="Pre-visualizacao" src="${editing ? escapeHtml(editing.image) : ''}">
+                    <div id="imagePreviewArea" class="image-preview-area" style="${editing && editing.image ? '' : 'display:none'}">
+                        <img id="previewImg" alt="Pré-visualização" src="${editing ? escapeHtml(editing.image || '') : ''}">
                     </div>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" data-close-modal>Cancelar</button>
-                    <button type="submit" class="btn-primary">Salvar</button>
+                    <button type="submit" class="btn-primary" id="envSaveBtn">Salvar</button>
                 </div>
             </form>
         `;
@@ -275,98 +268,95 @@
         const urlInput = document.getElementById('imageUrlInput');
         const previewArea = document.getElementById('imagePreviewArea');
         const previewImg = document.getElementById('previewImg');
+        let selectedFile = null;
 
         uploadBtn.onclick = () => fileInput.click();
 
-        fileInput.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const base64 = await uploadImageToBase64(file);
-                urlInput.value = base64;
-                previewImg.src = base64;
+        fileInput.onchange = (e) => {
+            selectedFile = e.target.files[0] || null;
+            if (selectedFile) {
+                previewImg.src = previewFromFile(selectedFile);
                 previewArea.style.display = 'block';
+                urlInput.value = '';
             }
         };
 
         urlInput.oninput = () => {
             if (urlInput.value) {
+                selectedFile = null;
+                fileInput.value = '';
                 previewImg.src = urlInput.value;
                 previewArea.style.display = 'block';
-            } else {
+            } else if (!selectedFile) {
                 previewArea.style.display = 'none';
             }
         };
 
         document.getElementById('envForm').onsubmit = async (e) => {
             e.preventDefault();
-            let imageUrl = urlInput.value;
-            if (!imageUrl && fileInput.files[0]) imageUrl = await uploadImageToBase64(fileInput.files[0]);
-            if (!imageUrl) {
+            const hasExisting = editing && editing.image;
+            if (!selectedFile && !urlInput.value && !hasExisting) {
                 showToast('Adicione uma imagem (arquivo ou URL).', 'warning');
                 return;
             }
-            ensureCarouselOrder();
-            const wantCarousel = isCarouselModal;
-            const tagVal      = document.getElementById('envTag')      ? document.getElementById('envTag').value.trim()      : (editing ? editing.tag || '' : '');
-            const sectionVal  = document.getElementById('envSection')  ? document.getElementById('envSection').value          : (editing ? editing.section || '' : '');
-            const subtitleVal = document.getElementById('envSubtitle') ? document.getElementById('envSubtitle').value.trim() : (editing ? editing.subtitle || '' : '');
-            const descVal     = document.getElementById('envDesc')     ? document.getElementById('envDesc').value             : (editing ? editing.description || '' : '');
-            if (editing) {
-                const oldSection    = editing.section || '';
-                editing.title       = document.getElementById('envTitle').value;
-                editing.description = descVal;
-                editing.image       = imageUrl;
-                editing.isCarousel  = wantCarousel;
-                editing.tag         = tagVal;
-                editing.section     = sectionVal;
-                editing.subtitle    = subtitleVal;
-                if (wantCarousel && !DB.carouselOrder.includes(editing.id)) DB.carouselOrder.push(editing.id);
-                if (!wantCarousel) DB.carouselOrder = DB.carouselOrder.filter((x) => x !== editing.id);
-                addActivity(`Ambiente "${editing.title}" atualizado`, 'fa-image');
-                if (!wantCarousel) {
-                    if (oldSection && oldSection !== sectionVal) autoActivateIfSingle(oldSection);
-                    autoActivateIfSingle(sectionVal);
+
+            const saveBtn = document.getElementById('envSaveBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Salvando…';
+
+            const tagVal = document.getElementById('envTag') ? document.getElementById('envTag').value.trim() : '';
+            const sectionVal = document.getElementById('envSection') ? document.getElementById('envSection').value : '';
+            const subtitleVal = document.getElementById('envSubtitle') ? document.getElementById('envSubtitle').value.trim() : '';
+            const descVal = document.getElementById('envDesc') ? document.getElementById('envDesc').value : '';
+
+            const form = new FormData();
+            if (editing) form.append('id', String(editing.id));
+            form.append('titulo', document.getElementById('envTitle').value);
+            form.append('subtitulo', subtitleVal);
+            form.append('tag', tagVal);
+            form.append('descricao', descVal);
+            form.append('secao', isCarouselModal ? '' : sectionVal);
+            form.append('isCarousel', isCarouselModal ? 'true' : 'false');
+            if (selectedFile) form.append('foto', selectedFile);
+            else if (urlInput.value) form.append('fotoUrl', urlInput.value.trim());
+
+            try {
+                if (editing) {
+                    await apiSendForm(`ambientes/${editing.id}`, 'PUT', form);
+                    addActivity(`Ambiente "${document.getElementById('envTitle').value}" atualizado`, 'fa-image');
+                } else {
+                    await apiSendForm('ambientes', 'POST', form);
+                    addActivity('Novo ambiente adicionado', 'fa-plus-circle');
                 }
-            } else {
-                const nid = nextId(DB.environments);
-                DB.environments.push({
-                    id:          nid,
-                    title:       document.getElementById('envTitle').value,
-                    description: descVal,
-                    image:       imageUrl,
-                    isCarousel:  wantCarousel,
-                    tag:         tagVal,
-                    section:     sectionVal,
-                    subtitle:    subtitleVal
-                });
-                if (wantCarousel) DB.carouselOrder.push(nid);
-                addActivity('Novo ambiente adicionado', 'fa-plus-circle');
-                if (!wantCarousel) autoActivateIfSingle(sectionVal);
+                closeModal();
+                await loadModule(currentModule);
+                showToast('Ambiente salvo.', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Salvar';
             }
-            ensureCarouselOrder();
-            saveDb();
-            closeModal();
-            loadModule(currentModule);
-            showToast('Ambiente salvo.', 'success');
         };
     }
 
-    // ---------- Modal reserva ----------
-    const MENU_CATEGORIES_DEFAULT = ['Entradas', 'Pratos Principais', 'Bebidas', 'Sobremesas'];
+    // ---------- Modal de item do cardápio ----------
+    async function openMenuItemModal(itemId = null) {
+        let editing = null;
+        let categorias = [];
+        try {
+            categorias = await apiGet('categorias');
+            if (itemId) editing = mapProduto(await apiGet(`produtos/${itemId}`));
+        } catch (err) {
+            showToast(err.message, 'error');
+            return;
+        }
 
-    function menuCategorySelectOptions(selectedCat) {
-        const set = new Set([...MENU_CATEGORIES_DEFAULT, ...DB.menu.map((m) => m.category)]);
-        return [...set]
-            .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-            .map((c) => `<option value="${escapeHtml(c)}" ${selectedCat === c ? 'selected' : ''}>${escapeHtml(c)}</option>`)
-            .join('');
-    }
-
-    // ---------- Modal cardápio ----------
-    function openMenuItemModal(itemId = null) {
-        const editing = itemId ? DB.menu.find((m) => m.id === itemId) : null;
         const modal = document.getElementById('globalModal');
         const modalBody = document.getElementById('modalBody');
+        const selectedCatId = editing ? editing.categoriaId : (categorias[0] ? categorias[0].id : null);
+        const catOptions = categorias
+            .map((c) => `<option value="${c.id}" ${selectedCatId === c.id ? 'selected' : ''}>${escapeHtml(c.nome)}</option>`)
+            .join('');
 
         modalBody.innerHTML = `
             <h2 class="modal-title">${editing ? 'Editar prato' : 'Novo item no cardápio'}</h2>
@@ -374,39 +364,51 @@
                 <div class="form-group"><label for="itemName">Nome *</label>
                     <input type="text" id="itemName" required value="${editing ? escapeHtml(editing.name) : ''}"></div>
                 <div class="form-group"><label for="itemCat">Categoria *</label>
-                    <select id="itemCat">${menuCategorySelectOptions(editing ? editing.category : 'Pratos Principais')}</select></div>
-
+                    <select id="itemCat" required>${catOptions}</select></div>
                 <div class="form-group"><label for="itemDesc">Descrição *</label>
                     <textarea id="itemDesc" rows="3" required placeholder="Ingredientes, acompanhamentos…">${editing ? escapeHtml(editing.description) : ''}</textarea></div>
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" data-close-modal>Cancelar</button>
-                    <button type="submit" class="btn-primary">${editing ? 'Salvar alterações' : 'Adicionar'}</button>
+                    <button type="submit" class="btn-primary" id="menuSaveBtn">${editing ? 'Salvar alterações' : 'Adicionar'}</button>
                 </div>
             </form>
         `;
         modal.classList.add('active');
         modal.querySelector('[data-close-modal]')?.addEventListener('click', closeModal);
 
-        document.getElementById('menuForm').onsubmit = (e) => {
+        document.getElementById('menuForm').onsubmit = async (e) => {
             e.preventDefault();
-            const payload = {
-                name: document.getElementById('itemName').value,
-                category: document.getElementById('itemCat').value,
+            const saveBtn = document.getElementById('menuSaveBtn');
+            saveBtn.disabled = true;
 
-                description: document.getElementById('itemDesc').value
-            };
-            if (editing) {
-                Object.assign(editing, payload);
-                addActivity(`Cardápio atualizado: ${editing.name}`, 'fa-utensils');
-                showToast('Prato atualizado.', 'success');
-            } else {
-                DB.menu.push({ id: nextId(DB.menu), ...payload });
-                addActivity('Item adicionado ao cardápio', 'fa-utensils');
-                showToast('Item adicionado ao cardápio.', 'success');
+            const form = new FormData();
+            if (editing) form.append('id', String(editing.id));
+            form.append('categoriaId', document.getElementById('itemCat').value);
+            form.append('nome', document.getElementById('itemName').value);
+            form.append('descricao', document.getElementById('itemDesc').value);
+            // Estoque/preço não são gerenciados pela interface do cardápio; usamos
+            // valores neutros para satisfazer os campos obrigatórios da API.
+            form.append('qtde', editing ? '50' : '50');
+            form.append('valorCusto', '0');
+            form.append('valorVenda', '0');
+            form.append('destaque', 'false');
+
+            try {
+                if (editing) {
+                    await apiSendForm(`produtos/${editing.id}`, 'PUT', form);
+                    addActivity(`Cardápio atualizado: ${document.getElementById('itemName').value}`, 'fa-utensils');
+                    showToast('Prato atualizado.', 'success');
+                } else {
+                    await apiSendForm('produtos', 'POST', form);
+                    addActivity('Item adicionado ao cardápio', 'fa-utensils');
+                    showToast('Item adicionado ao cardápio.', 'success');
+                }
+                closeModal();
+                await loadModule(currentModule);
+            } catch (err) {
+                showToast(err.message, 'error');
+                saveBtn.disabled = false;
             }
-            saveDb();
-            closeModal();
-            loadModule(currentModule);
         };
     }
 
@@ -442,67 +444,62 @@
         });
     }
 
-    function confirmReservation(id) {
-        const r = DB.reservations.find((x) => x.id === id);
-        if (!r) return;
+    async function confirmReservation(id, name, date, time) {
         openConfirmDialog({
             title: 'Confirmar reserva',
-            message: `Confirmar a reserva de ${r.name} para ${formatDate(r.date)} às ${r.time}?`,
+            message: `Confirmar a reserva de ${name} para ${formatDate(date)} às ${time}?`,
             confirmLabel: 'Confirmar',
             confirmClass: 'btn-primary',
-            onConfirm: () => {
-                r.confirmed = true;
-                addActivity(`Reserva confirmada: ${r.name}`, 'fa-check-circle');
-                saveDb();
-                loadModule(currentModule);
-                showToast('Reserva confirmada.', 'success');
-            }
-        });
-    }
-
-    function deleteReservation(id) {
-        const r = DB.reservations.find((x) => x.id === id);
-        if (!r) return;
-        openConfirmDialog({
-            title: 'Excluir reserva',
-            message: `Tem certeza que deseja excluir a reserva de ${r.name}? Esta ação não pode ser desfeita.`,
-            confirmLabel: 'Excluir',
-            confirmClass: 'btn-danger',
-            onConfirm: () => {
-                const i = DB.reservations.findIndex((x) => x.id === id);
-                if (i !== -1) {
-                    DB.reservations.splice(i, 1);
-                    addActivity(`Reserva excluída: ${r.name}`, 'fa-trash');
-                    saveDb();
-                    loadModule(currentModule);
-                    showToast('Reserva excluída.', 'success');
+            onConfirm: async () => {
+                try {
+                    await apiPatch(`reservas/${id}/confirmar`);
+                    addActivity(`Reserva confirmada: ${name}`, 'fa-check-circle');
+                    await loadModule(currentModule);
+                    showToast('Reserva confirmada.', 'success');
+                } catch (err) {
+                    showToast(err.message, 'error');
                 }
             }
         });
     }
 
-    function deleteMenuItem(id) {
+    async function deleteReservation(id, name) {
+        openConfirmDialog({
+            title: 'Excluir reserva',
+            message: `Tem certeza que deseja excluir a reserva de ${name}? Esta ação não pode ser desfeita.`,
+            confirmLabel: 'Excluir',
+            confirmClass: 'btn-danger',
+            onConfirm: async () => {
+                try {
+                    await apiDelete(`reservas/${id}`);
+                    addActivity(`Reserva excluída: ${name}`, 'fa-trash');
+                    await loadModule(currentModule);
+                    showToast('Reserva excluída.', 'success');
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            }
+        });
+    }
+
+    async function deleteMenuItem(id) {
         if (!confirm('Remover este item do cardápio?')) return;
-        const i = DB.menu.findIndex((m) => m.id === id);
-        if (i !== -1) {
-            DB.menu.splice(i, 1);
+        try {
+            await apiDelete(`produtos/${id}`);
             addActivity('Item removido do cardápio', 'fa-trash');
-            saveDb();
-            loadModule(currentModule);
+            await loadModule(currentModule);
             showToast('Item removido.', 'success');
+        } catch (err) {
+            showToast(err.message, 'error');
         }
     }
 
-    function editEnvironment(id) {
-        const env = DB.environments.find((e) => e.id === id);
-        openEnvironmentModal(env ? !!env.isCarousel : false, id);
-    }
-
-    function autoActivateIfSingle(section) {
-        if (!section) return;
-        const items = DB.environments.filter((e) => !e.isCarousel && e.section === section);
-        if (items.length === 1) {
-            items[0].isActive = true;
+    async function editEnvironment(id) {
+        try {
+            const a = await apiGet(`ambientes/${id}`);
+            openEnvironmentModal(!!a.isCarousel, id);
+        } catch (err) {
+            showToast(err.message, 'error');
         }
     }
 
@@ -530,7 +527,6 @@
         track.onscroll = updateNavState;
         window.addEventListener('resize', updateNavState);
 
-        // Recalcula quando as imagens carregarem (a largura real só é conhecida depois)
         track.querySelectorAll('img').forEach((img) => {
             if (!img.complete) img.addEventListener('load', updateNavState, { once: true });
         });
@@ -538,54 +534,37 @@
         updateNavState();
     }
 
-    function deleteEnvironment(id) {
+    async function deleteEnvironment(id) {
         if (!confirm('Excluir este ambiente?')) return;
-        const i = DB.environments.findIndex((e) => e.id === id);
-        if (i !== -1) {
-            const removedSection = DB.environments[i].section;
-            const wasCarousel = DB.environments[i].isCarousel;
-            DB.environments.splice(i, 1);
-            if (Array.isArray(DB.carouselOrder)) DB.carouselOrder = DB.carouselOrder.filter((x) => x !== id);
+        try {
+            await apiDelete(`ambientes/${id}`);
             addActivity('Ambiente removido', 'fa-trash');
-            if (!wasCarousel) autoActivateIfSingle(removedSection);
-            saveDb();
-            loadModule(currentModule);
+            await loadModule(currentModule);
             showToast('Ambiente excluído.', 'success');
+        } catch (err) {
+            showToast(err.message, 'error');
         }
     }
 
-    function removeFromCarousel(id) {
-        const e = DB.environments.find((x) => x.id === id);
-        if (e) {
-            e.isCarousel = false;
-            if (Array.isArray(DB.carouselOrder)) DB.carouselOrder = DB.carouselOrder.filter((x) => x !== id);
+    async function removeFromCarousel(id) {
+        try {
+            await apiPatch(`ambientes/${id}/remover-carrossel`);
             addActivity('Slide removido do carrossel', 'fa-images');
-            saveDb();
-            loadModule(currentModule);
+            await loadModule(currentModule);
             showToast('Removido do carrossel.', 'info');
+        } catch (err) {
+            showToast(err.message, 'error');
         }
     }
 
-    function setActiveEnvironmentImage(id, makeActive) {
-        const env = DB.environments.find((e) => e.id === id);
-        if (!env || !env.section) return;
-
-        if (makeActive) {
-            // Apenas uma imagem pode estar ativa por seção: desmarca as demais
-            DB.environments.forEach((e) => {
-                if (!e.isCarousel && e.section === env.section) {
-                    e.isActive = e.id === id;
-                }
-            });
-            addActivity(`Imagem definida como ativa em "${env.section}"`, 'fa-image');
-            showToast('Esta imagem agora é exibida no site.', 'success');
-        } else {
-            env.isActive = false;
-            showToast('Imagem removida da exibição no site.', 'info');
+    async function setActiveEnvironmentImage(id, makeActive) {
+        try {
+            await apiSendJson(`ambientes/${id}/ativa`, 'PATCH', { isActive: makeActive });
+            showToast(makeActive ? 'Esta imagem agora é exibida no site.' : 'Imagem removida da exibição no site.', makeActive ? 'success' : 'info');
+            await loadModule(currentModule);
+        } catch (err) {
+            showToast(err.message, 'error');
         }
-
-        saveDb();
-        loadModule(currentModule);
     }
 
     // ---------- Gráficos (visão geral) ----------
@@ -600,21 +579,21 @@
         }
     }
 
-    function buildReservationWeekData() {
+    function buildReservationWeekData(reservas) {
         const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
         const counts = [0, 0, 0, 0, 0, 0, 0];
-        DB.reservations.forEach((r) => {
-            const d = new Date(r.date);
+        reservas.forEach((r) => {
+            const d = new Date(`${r.date}T00:00:00`);
             if (Number.isNaN(d.getTime())) return;
             counts[d.getDay()]++;
         });
         return { labels: days, data: counts };
     }
 
-    function buildMenuCategoryData() {
+    function buildMenuCategoryData(produtos) {
         const map = {};
-        DB.menu.forEach((m) => {
-            map[m.category] = (map[m.category] || 0) + 1;
+        produtos.forEach((p) => {
+            map[p.category] = (map[p.category] || 0) + 1;
         });
         const labels = Object.keys(map);
         const data = labels.map((k) => map[k]);
@@ -622,15 +601,15 @@
     }
 
     function initOverviewCharts() {
-        if (typeof Chart === 'undefined') return;
+        if (typeof Chart === 'undefined' || !lastOverviewData) return;
         destroyOverviewCharts();
 
         const trendEl = document.getElementById('chartReservationsWeek');
         const catEl = document.getElementById('chartMenuCategories');
         if (!trendEl || !catEl) return;
 
-        const week = buildReservationWeekData();
-        const cats = buildMenuCategoryData();
+        const week = buildReservationWeekData(lastOverviewData.reservas);
+        const cats = buildMenuCategoryData(lastOverviewData.produtos);
 
         const gold = 'rgba(154, 132, 86, 1)';
         const goldDim = 'rgba(154, 132, 86, 0.25)';
@@ -639,31 +618,15 @@
             type: 'bar',
             data: {
                 labels: week.labels,
-                datasets: [
-                    {
-                        label: 'Reservas ativas por dia da semana',
-                        data: week.data,
-                        backgroundColor: goldDim,
-                        borderColor: gold,
-                        borderWidth: 2,
-                        borderRadius: 8
-                    }
-                ]
+                datasets: [{ label: 'Reservas por dia da semana', data: week.data, backgroundColor: goldDim, borderColor: gold, borderWidth: 2, borderRadius: 8 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { mode: 'index', intersect: false }
-                },
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
                 scales: {
                     x: { ticks: { color: '#8A8F99' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1, color: '#8A8F99' },
-                        grid: { color: 'rgba(255,255,255,0.06)' }
-                    }
+                    y: { beginAtZero: true, ticks: { stepSize: 1, color: '#8A8F99' }, grid: { color: 'rgba(255,255,255,0.06)' } }
                 }
             }
         });
@@ -673,31 +636,32 @@
             type: 'doughnut',
             data: {
                 labels: cats.labels.length ? cats.labels : ['Sem dados'],
-                datasets: [
-                    {
-                        data: cats.data.length ? cats.data : [1],
-                        backgroundColor: cats.labels.length ? cats.labels.map((_, i) => palette[i % palette.length]) : ['#2C313A'],
-                        borderWidth: 0
-                    }
-                ]
+                datasets: [{
+                    data: cats.data.length ? cats.data : [1],
+                    backgroundColor: cats.labels.length ? cats.labels.map((_, i) => palette[i % palette.length]) : ['#2C313A'],
+                    borderWidth: 0
+                }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#8A8F99', boxWidth: 12 } }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#8A8F99', boxWidth: 12 } } } }
         });
     }
 
     // ---------- Renderização ----------
-    function renderOverview() {
-        const totalRes = DB.reservations.length;
-        const hoje = todayIso();
-        const todayCount = DB.reservations.filter((r) => r.date === hoje).length;
+    async function renderOverview() {
+        const [produtosRaw, ambientesRaw, reservasHojeRaw, reservasTotalRaw] = await Promise.all([
+            apiGet('produtos'),
+            apiGet('ambientes'),
+            apiGet(`reservas?data=${todayIso()}`),
+            apiGet('reservas')
+        ]);
 
-        const upcoming = [...DB.reservations]
+        const produtos = produtosRaw.map(mapProduto);
+        const ambientes = ambientesRaw.map(mapAmbiente);
+        const reservasTotal = reservasTotalRaw.map(mapReserva);
+
+        lastOverviewData = { produtos, reservas: reservasTotal };
+
+        const upcoming = [...reservasTotal]
             .sort((a, b) => new Date(a.date) - new Date(b.date) || a.time.localeCompare(b.time))
             .slice(0, 5);
 
@@ -713,27 +677,24 @@
                       })
                       .join('');
 
-        const activities =
-            DB.activities.length === 0
-                ? '<p class="empty-hint">Nenhuma atividade recente.</p>'
-                : DB.activities
+        const activitiesHtml =
+            activities.length === 0
+                ? '<p class="empty-hint">Nenhuma atividade nesta sessão ainda.</p>'
+                : activities
                       .slice(0, 8)
-                      .map(
-                          (a) =>
-                              `<div class="activity-item"><div class="activity-icon"><i class="fas ${escapeHtml(a.icon)}"></i></div><div class="activity-text"><p>${escapeHtml(a.action)}</p><span class="activity-time">${escapeHtml(a.user)} · ${escapeHtml(a.time)}</span></div></div>`
-                      )
+                      .map((a) => `<div class="activity-item"><div class="activity-icon"><i class="fas ${escapeHtml(a.icon)}"></i></div><div class="activity-text"><p>${escapeHtml(a.action)}</p><span class="activity-time">${escapeHtml(a.user)} · ${escapeHtml(a.time)}</span></div></div>`)
                       .join('');
 
         return `
             <div class="kpi-grid">
                 <div class="kpi-card" title="Reservas para hoje">
                     <div class="kpi-icon"><i class="fas fa-calendar-alt"></i></div>
-                    <div class="kpi-value">${todayCount}</div>
+                    <div class="kpi-value">${reservasHojeRaw.length}</div>
                     <div class="kpi-label">Reservas de hoje</div>
                 </div>
-                <div class="kpi-card"><div class="kpi-icon"><i class="fas fa-database"></i></div><div class="kpi-value">${totalRes}</div><div class="kpi-label">Total no sistema</div></div>
-                <div class="kpi-card"><div class="kpi-icon"><i class="fas fa-utensils"></i></div><div class="kpi-value">${DB.menu.length}</div><div class="kpi-label">Itens no cardápio</div></div>
-                <div class="kpi-card"><div class="kpi-icon"><i class="fas fa-images"></i></div><div class="kpi-value">${DB.environments.length}</div><div class="kpi-label">Ambientes</div></div>
+                <div class="kpi-card"><div class="kpi-icon"><i class="fas fa-database"></i></div><div class="kpi-value">${reservasTotal.length}</div><div class="kpi-label">Total no sistema</div></div>
+                <div class="kpi-card"><div class="kpi-icon"><i class="fas fa-utensils"></i></div><div class="kpi-value">${produtos.length}</div><div class="kpi-label">Itens no cardápio</div></div>
+                <div class="kpi-card"><div class="kpi-icon"><i class="fas fa-images"></i></div><div class="kpi-value">${ambientes.length}</div><div class="kpi-label">Ambientes</div></div>
             </div>
             <div class="charts-row">
                 <div class="card chart-card">
@@ -759,32 +720,25 @@
                 </div>
                 <div class="card">
                     <div class="card-header"><h3>Atividades recentes</h3></div>
-                    <div class="card-body activity-list">${activities}</div>
+                    <div class="card-body activity-list">${activitiesHtml}</div>
                 </div>
             </div>
         `;
     }
 
-    function filterReservationsList() {
-        const selected = uiState.reservations.selectedDate || todayIso();
-        let list = DB.reservations.filter((r) => r.date === selected);
-        const q = uiState.reservations.query.trim().toLowerCase();
-        if (q) {
-            list = list.filter(
-                (r) =>
-                    r.name.toLowerCase().includes(q) ||
-                    r.phone.replace(/\D/g, '').includes(q.replace(/\D/g, ''))
-            );
-        }
-        return list.sort((a, b) => a.time.localeCompare(b.time));
-    }
-
-    function renderReservations() {
-        const filtered = filterReservationsList();
+    async function renderReservations() {
         const hoje = todayIso();
         const selected = uiState.reservations.selectedDate || hoje;
         const isToday = selected === hoje;
         const titulo = isToday ? `Reservas de hoje — ${formatDate(selected)}` : `Reservas de ${formatDate(selected)}`;
+
+        const raw = await apiGet(`reservas?data=${selected}`);
+        let filtered = raw.map(mapReserva);
+        const q = uiState.reservations.query.trim().toLowerCase();
+        if (q) {
+            filtered = filtered.filter((r) => r.name.toLowerCase().includes(q) || r.phone.replace(/\D/g, '').includes(q.replace(/\D/g, '')));
+        }
+        filtered.sort((a, b) => a.time.localeCompare(b.time));
 
         const rows =
             filtered.length === 0
@@ -794,16 +748,14 @@
                           const detalhes = [
                               r.type === 'evento' ? `Evento${r.eventType ? ` — ${escapeHtml(r.eventType)}` : ''}` : 'Mesa',
                               r.ambiente ? `Ambiente: ${escapeHtml(r.ambiente)}` : ''
-                          ]
-                              .filter(Boolean)
-                              .join(' · ');
+                          ].filter(Boolean).join(' · ');
                           const obs = r.notes ? `<br><small style="color:var(--gray-text);">Obs: ${escapeHtml(r.notes)}</small>` : '';
                           const badge = r.confirmed
                               ? '<span class="status-badge status-confirmed">Confirmada</span>'
                               : '<span class="status-badge status-pending">Pendente</span>';
                           const confirmBtn = r.confirmed
                               ? ''
-                              : `<button type="button" class="btn-secondary" title="Confirmar reserva" data-confirm-res="${r.id}">
+                              : `<button type="button" class="btn-secondary" title="Confirmar reserva" data-confirm-res="${r.id}" data-res-name="${escapeHtml(r.name)}" data-res-date="${r.date}" data-res-time="${r.time}">
                                     <i class="fas fa-check"></i> Confirmar
                                 </button>`;
                           return `<tr>
@@ -815,7 +767,7 @@
                             <td>${badge}</td>
                             <td class="table-actions">
                                 ${confirmBtn}
-                                <button type="button" class="btn-icon danger" title="Excluir reserva" data-del-res="${r.id}">
+                                <button type="button" class="btn-icon danger" title="Excluir reserva" data-del-res="${r.id}" data-res-name="${escapeHtml(r.name)}">
                                     <i class="fas fa-trash"></i> Excluir
                                 </button>
                             </td>
@@ -856,55 +808,38 @@
         `;
     }
 
-    function filterMenuItems() {
-        let list = DB.menu;
+    async function renderMenu() {
+        const [produtosRaw, categorias] = await Promise.all([apiGet('produtos'), apiGet('categorias')]);
+        let list = produtosRaw.map(mapProduto);
+
         const { query, category } = uiState.menu;
-        if (category !== 'all') list = list.filter((m) => m.category === category);
+        if (category !== 'all') list = list.filter((m) => String(m.categoriaId) === String(category));
         const q = query.trim().toLowerCase();
         if (q) {
-            list = list.filter(
-                (m) =>
-                    m.name.toLowerCase().includes(q) ||
-                    m.description.toLowerCase().includes(q) ||
-                    m.category.toLowerCase().includes(q)
-            );
+            list = list.filter((m) => m.name.toLowerCase().includes(q) || m.description.toLowerCase().includes(q) || (m.category || '').toLowerCase().includes(q));
         }
-        return list;
-    }
+        list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
-    function getMenuCategoryPillsList() {
-        const set = new Set(MENU_CATEGORIES_DEFAULT);
-        DB.menu.forEach((m) => set.add(m.category));
-        return [...set].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    }
-
-    function renderMenu() {
-        let filtered = filterMenuItems();
-        const sort = uiState.menu.sort || 'name';
-        filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-
-        const allCats = getMenuCategoryPillsList();
-        const nItems = DB.menu.length;
-        const nCat = allCats.length;
+        const nItems = produtosRaw.length;
+        const nCat = categorias.length;
 
         const pills = [
-            `<button type="button" class="menu-pill ${uiState.menu.category === 'all' ? 'menu-pill--active' : ''}" data-menu-cat="all">Todas <span class="menu-pill__count">${nItems}</span></button>`
+            `<button type="button" class="menu-pill ${category === 'all' ? 'menu-pill--active' : ''}" data-menu-cat="all">Todas <span class="menu-pill__count">${nItems}</span></button>`
         ]
             .concat(
-                allCats.map(
+                categorias.map(
                     (c) =>
-                        `<button type="button" class="menu-pill ${uiState.menu.category === c ? 'menu-pill--active' : ''}" data-menu-cat="${escapeHtml(c)}">${escapeHtml(c)} <span class="menu-pill__count">${DB.menu.filter((m) => m.category === c).length}</span></button>`
+                        `<button type="button" class="menu-pill ${String(category) === String(c.id) ? 'menu-pill--active' : ''}" data-menu-cat="${c.id}">${escapeHtml(c.nome)} <span class="menu-pill__count">${produtosRaw.filter((p) => p.categoriaId === c.id).length}</span></button>`
                 )
             )
             .join('');
 
-        const cards = filtered
+        const cards = list
             .map((i) => {
-                const desc =
-                    i.description.length > 160 ? `${escapeHtml(i.description.slice(0, 160))}…` : escapeHtml(i.description);
+                const desc = i.description.length > 160 ? `${escapeHtml(i.description.slice(0, 160))}…` : escapeHtml(i.description);
                 return `<article class="menu-item-card">
                     <div class="menu-item-card__top">
-                        <span class="menu-item-card__cat">${escapeHtml(i.category)}</span>
+                        <span class="menu-item-card__cat">${escapeHtml(i.category || '')}</span>
                         <div class="menu-item-card__actions">
                             <button type="button" class="btn-icon" title="Editar" data-edit-menu="${i.id}"><i class="fas fa-edit"></i></button>
                             <button type="button" class="btn-icon danger" title="Remover" data-del-menu="${i.id}"><i class="fas fa-trash"></i></button>
@@ -912,13 +847,12 @@
                     </div>
                     <h3 class="menu-item-card__name">${escapeHtml(i.name)}</h3>
                     <p class="menu-item-card__desc">${desc}</p>
-
                 </article>`;
             })
             .join('');
 
         const emptyBlock =
-            filtered.length === 0
+            list.length === 0
                 ? `<div class="menu-empty card">
                     <i class="fas fa-utensils menu-empty__icon"></i>
                     <p><strong>Nenhum item nesta visualização.</strong></p>
@@ -945,21 +879,17 @@
                         <span class="menu-page__filters-label">Categoria</span>
                         <div class="menu-pills" role="group" aria-label="Filtrar por categoria">${pills}</div>
                     </div>
-                    <div class="menu-sort" role="group" aria-label="Ordenação">
-                        <span class="menu-sort__label">Ordenar</span>
-                        <button type="button" class="menu-sort__btn ${sort === 'name' ? 'menu-sort__btn--active' : ''}" data-menu-sort="name">A–Z</button>
-
-                    </div>
                 </header>
                 ${emptyBlock || `<div class="menu-items-grid">${cards}</div>`}
             </div>
         `;
     }
 
-    function renderEnvironments() {
-        ensureCarouselOrder();
-        const carousel = getCarouselSlidesOrdered();
-        const gallery = DB.environments.filter((e) => !e.isCarousel);
+    async function renderEnvironments() {
+        const raw = await apiGet('ambientes');
+        const all = raw.map(mapAmbiente);
+        const carousel = all.filter((e) => e.isCarousel).sort((a, b) => (a.carouselOrder ?? 0) - (b.carouselOrder ?? 0));
+        const gallery = all.filter((e) => !e.isCarousel);
 
         const carouselHtml =
             carousel.length === 0
@@ -999,7 +929,7 @@
                                 </div>
                             </div>
                         </div>`;
-                        })
+                      })
                       .join('');
 
         return `
@@ -1055,10 +985,17 @@
                 search.addEventListener('input', onQ);
             }
             document.querySelectorAll('[data-confirm-res]').forEach((btn) => {
-                btn.addEventListener('click', () => confirmReservation(Number(btn.getAttribute('data-confirm-res'))));
+                btn.addEventListener('click', () =>
+                    confirmReservation(
+                        Number(btn.getAttribute('data-confirm-res')),
+                        btn.getAttribute('data-res-name'),
+                        btn.getAttribute('data-res-date'),
+                        btn.getAttribute('data-res-time')
+                    )
+                );
             });
             document.querySelectorAll('[data-del-res]').forEach((btn) => {
-                btn.addEventListener('click', () => deleteReservation(Number(btn.getAttribute('data-del-res'))));
+                btn.addEventListener('click', () => deleteReservation(Number(btn.getAttribute('data-del-res')), btn.getAttribute('data-res-name')));
             });
         }
         if (module === 'menu') {
@@ -1066,12 +1003,6 @@
             document.querySelectorAll('[data-menu-cat]').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     uiState.menu.category = btn.getAttribute('data-menu-cat') || 'all';
-                    loadModule('menu');
-                });
-            });
-            document.querySelectorAll('[data-menu-sort]').forEach((btn) => {
-                btn.addEventListener('click', () => {
-                    uiState.menu.sort = 'name';
                     loadModule('menu');
                 });
             });
@@ -1104,20 +1035,17 @@
                 btn.addEventListener('click', () => deleteEnvironment(Number(btn.getAttribute('data-del-env'))));
             });
             document.querySelectorAll('[data-set-active-env]').forEach((cb) => {
-                cb.addEventListener('change', () => {
-                    setActiveEnvironmentImage(Number(cb.getAttribute('data-set-active-env')), cb.checked);
-                });
+                cb.addEventListener('change', () => setActiveEnvironmentImage(Number(cb.getAttribute('data-set-active-env')), cb.checked));
             });
         }
     }
 
-    function loadModule(module) {
+    async function loadModule(module) {
         const def = MODULES[module];
         if (!def) return;
 
         const ae = document.activeElement;
-        const restoreFocusId =
-            ae && (ae.id === 'resSearchInput' || ae.id === 'menuSearchInput') ? ae.id : null;
+        const restoreFocusId = ae && (ae.id === 'resSearchInput' || ae.id === 'menuSearchInput') ? ae.id : null;
 
         if (currentModule === 'overview' && module !== 'overview') destroyOverviewCharts();
 
@@ -1129,8 +1057,20 @@
         } else {
             title.textContent = def.title;
         }
-        area.innerHTML = def.render();
-        bindModuleEvents(module);
+
+        area.innerHTML = '<p class="empty-hint"><i class="fas fa-circle-notch fa-spin" style="margin-right:8px;"></i>Carregando dados do servidor…</p>';
+
+        try {
+            const html = await def.render();
+            area.innerHTML = html;
+            bindModuleEvents(module);
+        } catch (err) {
+            area.innerHTML = `<div class="card"><div class="card-body">
+                <p class="empty-hint"><i class="fas fa-triangle-exclamation" style="margin-right:8px;color:#dc3545;"></i>Não foi possível carregar os dados.</p>
+                <p style="color:var(--gray-text);font-size:13px;text-align:center;">${escapeHtml(err.message)}<br>Verifique se a API (Barbina.API) está em execução em <strong>localhost:5058</strong>.</p>
+            </div></div>`;
+            showToast('Erro ao carregar dados da API.', 'error');
+        }
 
         document.querySelectorAll('.nav-item').forEach((n) => {
             n.classList.toggle('active', n.getAttribute('data-module') === module);
@@ -1148,85 +1088,15 @@
         }
     }
 
-    function performGlobalSearch(query) {
-        const q = query.trim().toLowerCase();
-        const qDigits = q.replace(/\D/g, '');
-        const panel = document.getElementById('globalSearchResults');
-        if (!panel) return;
-        if (!q) {
-            panel.innerHTML = '';
-            panel.hidden = true;
-            return;
-        }
-        const res = DB.reservations.filter((r) => {
-            const byName = r.name.toLowerCase().includes(q);
-            const phoneDigits = String(r.phone).replace(/\D/g, '');
-            const byPhone =
-                r.phone.toLowerCase().includes(q) ||
-                (qDigits.length >= 2 && phoneDigits.includes(qDigits));
-            const byTable = r.table && r.table.toLowerCase().includes(q);
-            return byName || byPhone || byTable;
-        });
-        const menu = DB.menu.filter((m) => m.name.toLowerCase().includes(q) || m.category.toLowerCase().includes(q));
-        const env = DB.environments.filter((e) => e.title.toLowerCase().includes(q));
-
-        const lines = [];
-        res.slice(0, 5).forEach((r) => {
-            lines.push(
-                `<button type="button" class="search-hit" data-go="reservations">Reserva: ${escapeHtml(r.name)} — ${escapeHtml(formatDate(r.date))}</button>`
-            );
-        });
-        menu.slice(0, 5).forEach((m) => {
-            lines.push(`<button type="button" class="search-hit" data-go="menu">Cardápio: ${escapeHtml(m.name)} (${escapeHtml(m.category)})</button>`);
-        });
-        env.slice(0, 5).forEach((e) => {
-            lines.push(`<button type="button" class="search-hit" data-go="environments">Ambiente: ${escapeHtml(e.title)}</button>`);
-        });
-
-        if (!lines.length) {
-            panel.innerHTML = '<div class="search-empty">Nenhum resultado.</div>';
-        } else {
-            panel.innerHTML = lines.join('');
-            panel.querySelectorAll('.search-hit').forEach((b) => {
-                b.addEventListener('click', () => {
-                    const mod = b.getAttribute('data-go');
-                    closeSearchPanel();
-                    document.querySelector(`.nav-item[data-module="${mod}"]`)?.click();
-                });
-            });
-        }
-        panel.hidden = false;
-    }
-
-    const debouncedSearch = debounce((v) => performGlobalSearch(v), 220);
-
-    function closeSearchPanel() {
-        const panel = document.getElementById('globalSearchResults');
-        if (panel) {
-            panel.hidden = true;
-            panel.innerHTML = '';
-        }
-    }
-
     function updateDateTime() {
         const el = document.getElementById('currentDateTime');
         if (el) {
-            el.textContent = new Date().toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            el.textContent = new Date().toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         }
     }
 
     // ---------- Inicialização ----------
     document.addEventListener('DOMContentLoaded', () => {
-        DB = loadDb();
-        ensureCarouselOrder();
-        saveDb();
-
         loadModule('overview');
         updateDateTime();
         setInterval(updateDateTime, 60000);
@@ -1238,33 +1108,17 @@
             });
         });
 
-        document.getElementById('refreshBtn')?.addEventListener('click', () => {
+        document.getElementById('refreshBtn')?.addEventListener('click', async () => {
             setLoading(true);
-            setTimeout(() => {
-                loadModule(currentModule);
-                setLoading(false);
-                showToast('Dados atualizados.', 'info');
-            }, 280);
-        });
-
-        document.getElementById('logoutBtn')?.addEventListener('click', () => {
-            showToast('Sessão encerrada (demonstração).', 'info');
+            await loadModule(currentModule);
+            setLoading(false);
+            showToast('Dados atualizados.', 'info');
         });
 
         const modal = document.getElementById('globalModal');
         document.getElementById('modalCloseBtn')?.addEventListener('click', closeModal);
         modal?.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
-        });
-
-        const gSearch = document.getElementById('globalSearchInput');
-        gSearch?.addEventListener('input', (e) => debouncedSearch(e.target.value));
-        gSearch?.addEventListener('focus', (e) => {
-            if (e.target.value) performGlobalSearch(e.target.value);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.header-search')) closeSearchPanel();
         });
 
         const sidebarToggle = document.getElementById('sidebarToggle');
@@ -1289,8 +1143,6 @@
     });
 
     window.closeModal = closeModal;
-    window.confirmReservation = confirmReservation;
-    window.deleteReservation = deleteReservation;
     window.deleteMenuItem = deleteMenuItem;
     window.editMenuItem = editMenuItem;
     window.editEnvironment = editEnvironment;

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Barbina.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ac8e3e7e5cd1b50effc698583235c776c209dd84")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3c4c4171f7b0d9270f3fd90d0f219ecc6aed8250")]
 [assembly: System.Reflection.AssemblyProductAttribute("Barbina.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Barbina.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

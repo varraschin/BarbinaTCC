@@ -12,6 +12,8 @@ public class AppDbContext : IdentityDbContext<Usuario>
     public DbSet<Categoria> Categorias { get; set; }
     public DbSet<Produto> Produtos { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
+    public DbSet<Ambiente> Ambientes { get; set; }
+    public DbSet<Reserva> Reservas { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -19,6 +21,7 @@ public class AppDbContext : IdentityDbContext<Usuario>
         SeedUsuarioPadrao(builder);
         SeedCategoriaPadrao(builder);
         SeedProdutoPadrao(builder);
+        SeedAmbientePadrao(builder);
     }
 
     private static void SeedUsuarioPadrao(ModelBuilder builder)
@@ -53,34 +56,115 @@ public class AppDbContext : IdentityDbContext<Usuario>
         );
     }
 
+    // As 4 categorias abaixo são exatamente as usadas pela navegação do Cardápio do site.
     private static void SeedCategoriaPadrao(ModelBuilder builder)
     {
         builder.Entity<Categoria>().HasData(
             new Categoria { Id = 1, Nome = "Entradas", Cor = "rgba(255,140,0,1)" },
             new Categoria { Id = 2, Nome = "Pratos Principais", Cor = "rgba(220,53,69,1)" },
-            new Categoria { Id = 3, Nome = "Massas", Cor = "rgba(255,193,7,1)" },
-            new Categoria { Id = 4, Nome = "Grelhados", Cor = "rgba(40,167,69,1)" },
-            new Categoria { Id = 5, Nome = "Sobremesas", Cor = "rgba(111,66,193,1)" },
-            new Categoria { Id = 6, Nome = "Bebidas", Cor = "rgba(23,162,184,1)" }
+            new Categoria { Id = 3, Nome = "Bebidas", Cor = "rgba(23,162,184,1)" },
+            new Categoria { Id = 4, Nome = "Sobremesas", Cor = "rgba(111,66,193,1)" }
         );
     }
 
+    // Cardápio real do restaurante Barbina.
     private static void SeedProdutoPadrao(ModelBuilder builder)
     {
         builder.Entity<Produto>().HasData(
-            new Produto { Id = 1, CategoriaId = 1, Nome = "Bruschetta Clássica", Descricao = "Fatias de pão italiano tostado com tomate, alho, azeite e manjericão fresco.", Qtde = 50, ValorCusto = 8.00m, ValorVenda = 24.90m, Destaque = true },
-            new Produto { Id = 2, CategoriaId = 1, Nome = "Carpaccio de Filé", Descricao = "Finas fatias de filé mignon cru temperadas com azeite, limão, alcaparras e lascas de parmesão.", Qtde = 30, ValorCusto = 18.00m, ValorVenda = 49.90m, Destaque = false },
-            new Produto { Id = 3, CategoriaId = 1, Nome = "Ostras Frescas", Descricao = "Meia dúzia de ostras frescas, servidas com limão siciliano e mignonette de vinagre de vinho tinto.", Qtde = 20, ValorCusto = 25.00m, ValorVenda = 55.00m, Destaque = false },
-            new Produto { Id = 4, CategoriaId = 2, Nome = "Filé Mignon Barbina", Descricao = "Medalhão de 400g selado, com molho de vinho tinto reduzido e risoto cremoso de parmesão.", Qtde = 40, ValorCusto = 35.00m, ValorVenda = 89.90m, Destaque = true },
-            new Produto { Id = 5, CategoriaId = 2, Nome = "Risotto de Cogumelos Trufados", Descricao = "Arroz arbóreo com um mix de cogumelos frescos, azeite trufado e finalizado com queijo Grana Padano.", Qtde = 35, ValorCusto = 22.00m, ValorVenda = 65.90m, Destaque = true },
-            new Produto { Id = 6, CategoriaId = 2, Nome = "Salmão Grelhado com Purê", Descricao = "Filé de salmão grelhado com crosta de gergelim e purê aveludado de batata doce com gengibre.", Qtde = 25, ValorCusto = 30.00m, ValorVenda = 78.00m, Destaque = false },
-            new Produto { Id = 7, CategoriaId = 3, Nome = "Tagliatelle ao Funghi", Descricao = "Massa fresca ao molho cremoso de funghi secchi com azeite e ervas finas.", Qtde = 45, ValorCusto = 15.00m, ValorVenda = 52.90m, Destaque = true },
-            new Produto { Id = 8, CategoriaId = 3, Nome = "Linguine al Limone", Descricao = "Linguine com molho leve de limão siciliano, camarões grelhados e salsa.", Qtde = 40, ValorCusto = 22.00m, ValorVenda = 59.90m, Destaque = false },
-            new Produto { Id = 9, CategoriaId = 4, Nome = "Costela Bovina Grelhada", Descricao = "Costela bovina maturada grelhada lentamente, servida com farofa artesanal e vinagrete.", Qtde = 20, ValorCusto = 35.00m, ValorVenda = 89.90m, Destaque = true },
-            new Produto { Id = 10, CategoriaId = 5, Nome = "Brownie com Sorvete", Descricao = "Brownie quente de chocolate belga e nozes, servido com sorvete de baunilha e calda de caramelo salgado.", Qtde = 50, ValorCusto = 8.00m, ValorVenda = 26.90m, Destaque = true },
-            new Produto { Id = 11, CategoriaId = 5, Nome = "Crème Brûlée", Descricao = "Clássica sobremesa francesa com casquinha de açúcar caramelizado.", Qtde = 45, ValorCusto = 7.00m, ValorVenda = 29.00m, Destaque = false },
-            new Produto { Id = 12, CategoriaId = 6, Nome = "Caipirinha Barbina", Descricao = "Releitura da caipirinha com cachaça premium, limão taiti e toque de pimenta rosa.", Qtde = 100, ValorCusto = 6.00m, ValorVenda = 24.90m, Destaque = false },
-            new Produto { Id = 13, CategoriaId = 6, Nome = "Vinho da Casa (Taça)", Descricao = "Seleção especial de vinho tinto ou branco para acompanhar seu prato.", Qtde = 80, ValorCusto = 8.00m, ValorVenda = 35.00m, Destaque = true }
+            // ---------- Entradas (CategoriaId = 1) ----------
+            new Produto { Id = 1, CategoriaId = 1, Nome = "Funghi e Queijo Brie", Descricao = "Fatias de pão cobertas com creme de funghi e queijo brie gratinado.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 2, CategoriaId = 1, Nome = "Carpaccio de Carne", Descricao = "Fatias finas de carne crua, cobertas com alcaparras, fio de azeite, queijo parmesão e molho especial de mostarda. Acompanha cesta de torradas.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 3, CategoriaId = 1, Nome = "Ceviche de Salmão", Descricao = "Cubos de salmão cru marinados no limão, com cebola roxa, pimenta vermelha e temperos especiais.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 4, CategoriaId = 1, Nome = "Tábua de Frios", Descricao = "Salame italiano, muçarela, gorgonzola, provolone, presunto, azeitonas pretas, tomate e cesta de pães.", Qtde = 50, ValorCusto = 0, ValorVenda = 0, Destaque = true },
+            new Produto { Id = 5, CategoriaId = 1, Nome = "Batata Specialle", Descricao = "Porção de batatas fritas gratinadas com catupiry, muçarela e bacon.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 6, CategoriaId = 1, Nome = "Camarão ao Alho", Descricao = "Saborosos camarões com casca, salteados na manteiga e alho.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 7, CategoriaId = 1, Nome = "Tribom", Descricao = "Tiras de filé mignon com rúcula, calabresa acebolada, iscas de frango ao catupiry e alho.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+
+            // ---------- Pratos Principais (CategoriaId = 2) ----------
+            new Produto { Id = 8, CategoriaId = 2, Nome = "Picanha Barbina", Descricao = "Corte nobre de picanha servido com purê cremoso de mandioca, vinagrete, farofa, arroz branco e feijão.", Qtde = 50, ValorCusto = 0, ValorVenda = 0, Destaque = true },
+            new Produto { Id = 9, CategoriaId = 2, Nome = "Imperial", Descricao = "Filés grelhados ao molho branco com palmito. Acompanha batatas sauté.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 10, CategoriaId = 2, Nome = "Supremo", Descricao = "Filés grelhados cobertos com molho especial de champignon, catupiry, bacon e batata sorriso.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 11, CategoriaId = 2, Nome = "Filé ao Molho Madeira", Descricao = "Filés grelhados ao molho madeira com champignon. Acompanha purê de batatas.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 12, CategoriaId = 2, Nome = "Americano", Descricao = "Filé mignon grelhado com presunto, queijo e lascas de parmesão gratinado. Acompanha batatas fritas.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 13, CategoriaId = 2, Nome = "Bistrô", Descricao = "Filé mignon salteado na manteiga com molho roti, servido com batatas recheadas com creme de queijo brie e crisp de presunto de Parma.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 14, CategoriaId = 2, Nome = "À Poivre", Descricao = "Filé ao tradicional molho à base de creme de leite e pimentas verdes. Acompanha batatas sauté.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+
+            // ---------- Bebidas (CategoriaId = 3) ----------
+            new Produto { Id = 15, CategoriaId = 3, Nome = "Sex on the Beach", Descricao = "Vodca, licor de pêssego, suco de laranja e xarope de frutas vermelhas.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 16, CategoriaId = 3, Nome = "Caipirinha Tropicana", Descricao = "Mexerica e limão preparados com saquê, pimenta-rosa ou manjericão.", Qtde = 50, ValorCusto = 0, ValorVenda = 0, Destaque = true },
+            new Produto { Id = 17, CategoriaId = 3, Nome = "Soda Italiana", Descricao = "Água com gás e xarope de frutas.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 18, CategoriaId = 3, Nome = "Negroni", Descricao = "Gin, vermute tinto, Campari e laranja.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 19, CategoriaId = 3, Nome = "Whiskey Sour", Descricao = "Whiskey, suco de limão, xarope de açúcar e borda de sal.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 20, CategoriaId = 3, Nome = "Chopp Claro", Descricao = "", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 21, CategoriaId = 3, Nome = "Dry Martini", Descricao = "Gin, vermute seco e azeitona.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+
+            // ---------- Sobremesas (CategoriaId = 4) ----------
+            new Produto { Id = 22, CategoriaId = 4, Nome = "Petit Gateau", Descricao = "Bolo de chocolate com interior cremoso, servido com calda de chocolate e sorvete.", Qtde = 50, ValorCusto = 0, ValorVenda = 0, Destaque = true },
+            new Produto { Id = 23, CategoriaId = 4, Nome = "Petit Gateau de Doce de Leite", Descricao = "Bolo de doce de leite com interior cremoso, servido com calda de chocolate e sorvete.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 24, CategoriaId = 4, Nome = "Crumble de Banana", Descricao = "Banana assada com doce de leite, coberta com farofa crocante de aveia e açúcar. Acompanha sorvete de creme.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 25, CategoriaId = 4, Nome = "Bom Demais", Descricao = "Massinha de churros servida com doce de leite e Nutella.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 26, CategoriaId = 4, Nome = "Brownie", Descricao = "Brownie de chocolate com nozes, coberto com calda de brigadeiro. Acompanha sorvete de creme.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 27, CategoriaId = 4, Nome = "Brownie na Taça", Descricao = "Brownie de chocolate com nozes, servido em taça com doce de leite e calda de brigadeiro.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 },
+            new Produto { Id = 28, CategoriaId = 4, Nome = "Bola de Sorvete", Descricao = "Uma deliciosa bola de sorvete de creme.", Qtde = 50, ValorCusto = 0, ValorVenda = 0 }
+        );
+    }
+
+    // 4 slides de carrossel + 4 imagens de galeria (uma por seção), replicando os
+    // valores padrão que antes viviam fixos no JavaScript do site.
+    private static void SeedAmbientePadrao(ModelBuilder builder)
+    {
+        builder.Entity<Ambiente>().HasData(
+            // ---------- Carrossel (topo da página Ambientes) ----------
+            new Ambiente {
+                Id = 1, Titulo = "Salão Principal", Tag = "Elegância & Sofisticação",
+                Descricao = "Amplo, iluminado e decorado com detalhes que remetem à tradição italiana. Perfeito para jantares especiais e momentos em família.",
+                Foto = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1920&q=80",
+                IsCarousel = true, CarouselOrder = 1
+            },
+            new Ambiente {
+                Id = 2, Titulo = "Área de Balcão", Tag = "Descontração & Sabor",
+                Descricao = "Espaço acolhedor para apreciar nossas caipirinhas e porções enquanto acompanha a movimentação da cozinha.",
+                Foto = "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1920&q=80",
+                IsCarousel = true, CarouselOrder = 2
+            },
+            new Ambiente {
+                Id = 3, Titulo = "Espaço Privativo", Tag = "Privacidade & Exclusividade",
+                Descricao = "Ambiente reservado para celebrações especiais, reuniões de negócios ou momentos íntimos com quem você ama.",
+                Foto = "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1920&q=80",
+                IsCarousel = true, CarouselOrder = 3
+            },
+            new Ambiente {
+                Id = 4, Titulo = "Cozinha Show", Tag = "Arte & Gastronomia",
+                Descricao = "Acompanhe de perto a preparação dos nossos pratos e viva uma experiência sensorial única.",
+                Foto = "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1920&q=80",
+                IsCarousel = true, CarouselOrder = 4
+            },
+
+            // ---------- Galeria de Ambientes (story-items) ----------
+            new Ambiente {
+                Id = 5, Titulo = "Salão Principal", Subtitulo = "Tradição & Conforto", Secao = "Salao Principal",
+                Descricao = "Inspirado nos antigos salões italianos, este espaço foi projetado para receber famílias e amigos com todo aconchego. Os tons terrosos e a iluminação suave criam uma atmosfera perfeita para longas conversas e refeições memoráveis.",
+                Foto = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
+                IsCarousel = false, IsActive = true
+            },
+            new Ambiente {
+                Id = 6, Titulo = "Área de Balcão", Subtitulo = "Encontros & Amigos", Secao = "Area de Balcao",
+                Descricao = "O balcão é o coração pulsante do Barbina. É ali que as melhores histórias começam, acompanhadas de uma caipirinha gelada e porções generosas.",
+                Foto = "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80",
+                IsCarousel = false, IsActive = true
+            },
+            new Ambiente {
+                Id = 7, Titulo = "Espaço Privativo", Subtitulo = "Exclusividade & Celebração", Secao = "Espaco Privativo",
+                Descricao = "Criado para momentos que merecem privacidade, nosso espaço privativo comporta até 20 pessoas e oferece atendimento personalizado.",
+                Foto = "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
+                IsCarousel = false, IsActive = true
+            },
+            new Ambiente {
+                Id = 8, Titulo = "Cozinha Show", Subtitulo = "Experiência Sensorial", Secao = "Cozinha Show",
+                Descricao = "Acompanhe o preparo dos pratos em tempo real e viva uma imersão no universo Barbina, onde aroma, calor e técnica se unem.",
+                Foto = "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80",
+                IsCarousel = false, IsActive = true
+            }
         );
     }
 }

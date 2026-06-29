@@ -12,89 +12,89 @@ build_property.EntryPointFilePath =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = Barbina.UI
 build_property.RootNamespace = Barbina.UI
-build_property.ProjectDir = C:\Users\User\Downloads\BarbinaTCC\Barbina\Barbina.UI\
+build_property.ProjectDir = C:\Users\User\Desktop\BarbinaTCC\Barbina\Barbina.UI\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 10.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\User\Downloads\BarbinaTCC\Barbina\Barbina.UI
+build_property.MSBuildProjectDirectory = C:\Users\User\Desktop\BarbinaTCC\Barbina\Barbina.UI
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Admin/Index.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Admin/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Auth/Login.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Auth/Login.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXV0aFxMb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Categorias/Criar.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Categorias/Criar.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2F0ZWdvcmlhc1xDcmlhci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Categorias/Editar.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Categorias/Editar.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2F0ZWdvcmlhc1xFZGl0YXIuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Categorias/Index.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Categorias/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQ2F0ZWdvcmlhc1xJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Ambientes.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Ambientes.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxBbWJpZW50ZXMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Cardapio.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Cardapio.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDYXJkYXBpby5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Contato.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Contato.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDb250YXRvLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Index.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Reservas.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Home/Reservas.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxSZXNlcnZhcy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Produtos/Criar.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Produtos/Criar.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHJvZHV0b3NcQ3JpYXIuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Produtos/Editar.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Produtos/Editar.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHJvZHV0b3NcRWRpdGFyLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Produtos/Index.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Produtos/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUHJvZHV0b3NcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/Error.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/_AdminLayout.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/_AdminLayout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9BZG1pbkxheW91dC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/_Layout.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/_ViewImports.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WaWV3SW1wb3J0cy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/_ViewStart.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/Shared/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WaWV3U3RhcnQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Downloads/BarbinaTCC/Barbina/Barbina.UI/Views/_ViewImports.cshtml]
+[C:/Users/User/Desktop/BarbinaTCC/Barbina/Barbina.UI/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 

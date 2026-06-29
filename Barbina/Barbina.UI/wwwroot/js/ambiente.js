@@ -1,4 +1,7 @@
-// Dados do carrossel lidos do admin (localStorage) com fallback nos dados originais
+// Mesma URL configurada em Barbina.UI/appsettings.json (ApiSettings:BaseUrl).
+const API_BASE = 'http://localhost:5058/api/';
+
+// Usados apenas se a API estiver indisponível no momento do carregamento.
 const FALLBACK_CAROUSEL = [
     {
         id: 1,
@@ -30,105 +33,57 @@ const FALLBACK_CAROUSEL = [
     }
 ];
 
-function loadCarouselFromAdmin() {
+const SECTION_ORDER = ["Salao Principal", "Area de Balcao", "Espaco Privativo", "Cozinha Show"];
+
+const FALLBACK_STORYTELLING = [
+    { section: "Salao Principal", image: FALLBACK_CAROUSEL[0].image, subtitle: "Tradição & Conforto", title: "Salão Principal", description: "Inspirado nos antigos salões italianos, este espaço foi projetado para receber famílias e amigos com todo aconchego." },
+    { section: "Area de Balcao", image: FALLBACK_CAROUSEL[1].image, subtitle: "Encontros & Amigos", title: "Área de Balcão", description: "O balcão é o coração pulsante do Barbina. É ali que as melhores histórias começam." },
+    { section: "Espaco Privativo", image: FALLBACK_CAROUSEL[2].image, subtitle: "Exclusividade & Celebração", title: "Espaço Privativo", description: "Criado para momentos que merecem privacidade, com atendimento personalizado." },
+    { section: "Cozinha Show", image: FALLBACK_CAROUSEL[3].image, subtitle: "Experiência Sensorial", title: "Cozinha Show", description: "Acompanhe o preparo dos pratos em tempo real e viva uma imersão no universo Barbina." }
+];
+
+async function fetchJson(path) {
+    const res = await fetch(API_BASE + path);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+async function loadCarousel() {
     try {
-        const raw = localStorage.getItem('barbina_cms_v2');
-        if (raw) {
-            const db = JSON.parse(raw);
-            if (db.carouselOrder && db.environments && db.carouselOrder.length > 0) {
-                const slides = db.carouselOrder
-                    .map(id => db.environments.find(e => e.id === id))
-                    .filter(Boolean);
-                if (slides.length > 0) {
-                    return slides.map(e => ({
-                        id: e.id,
-                        image: e.image,
-                        tag: e.tag || '',
-                        title: e.title,
-                        desc: e.description || ''
-                    }));
-                }
-            }
+        const data = await fetchJson('ambientes/carrossel');
+        if (Array.isArray(data) && data.length > 0) {
+            return data.map((e) => ({ id: e.id, image: e.foto, tag: e.tag || '', title: e.titulo, desc: e.descricao || '' }));
         }
-    } catch(err) {}
+    } catch (err) {
+        console.warn('Não foi possível carregar o carrossel da API, usando dados padrão.', err);
+    }
     return FALLBACK_CAROUSEL;
 }
 
-const carouselData = loadCarouselFromAdmin();
-
-// Dados do Storytelling (Ambientes com histórias)
-// Storytelling com fallback - sobrescrito pelo admin via localStorage
-const FALLBACK_STORYTELLING = [
-    {
-        id: 1,
-        section: "Salao Principal",
-        image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
-        subtitle: "Tradicao & Conforto",
-        title: "Salao Principal",
-        description: "Inspirado nos antigos saloes italianos, este espaco foi projetado para receber familias e amigos com todo aconchego. Os tons terrosos e a iluminacao suave criam uma atmosfera perfeita para longas conversas e refeicoes memoraveis."
-    },
-    {
-        id: 2,
-        section: "Area de Balcao",
-        image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1200&q=80",
-        subtitle: "Encontros & Amigos",
-        title: "Area de Balcao",
-        description: "O balcao e o coracao pulsante do Barbina. E ali que as melhores historias comecam, acompanhadas de uma caipirinha gelada e porcoes generosas."
-    },
-    {
-        id: 3,
-        section: "Espaco Privativo",
-        image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80",
-        subtitle: "Exclusividade & Celebracao",
-        title: "Espaco Privativo",
-        description: "Criado para momentos que merecem privacidade, nosso espaco privativo comporta ate 20 pessoas e oferece atendimento personalizado."
-    },
-    {
-        id: 4,
-        section: "Cozinha Show",
-        image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80",
-        subtitle: "Experiencia Sensorial",
-        title: "Cozinha Show",
-        description: "Acompanhe o preparo dos pratos em tempo real e viva uma imersao no universo Barbina, onde aroma, calor e tecnica se unem."
-    }
-];
-
-const SECTION_ORDER = ["Salao Principal", "Area de Balcao", "Espaco Privativo", "Cozinha Show"];
-
-function loadStorytellingFromAdmin() {
+async function loadStorytelling() {
     try {
-        const raw = localStorage.getItem('barbina_cms_v2');
-        if (raw) {
-            const db = JSON.parse(raw);
-            if (db.environments) {
-                // Pegar apenas ambientes da galeria (nao carrossel) que tenham section
-                const galleryEnvs = db.environments.filter(e => !e.isCarousel && e.section);
-                if (galleryEnvs.length > 0) {
-                    // Para cada secao, usar a imagem marcada como ativa; se nenhuma estiver marcada,
-                    // cai para a primeira cadastrada (compatibilidade) ou para o fallback padrao.
-                    return SECTION_ORDER.map(sectionKey => {
-                        const fb = FALLBACK_STORYTELLING.find(f => f.section === sectionKey);
-                        const sectionEnvs = galleryEnvs.filter(e => e.section === sectionKey);
-                        const adminEnv = sectionEnvs.find(e => e.isActive) || sectionEnvs[0];
-                        return {
-                            id: fb ? fb.id : sectionKey,
-                            section: sectionKey,
-                            image: adminEnv ? adminEnv.image : (fb ? fb.image : ''),
-                            subtitle: adminEnv && adminEnv.subtitle ? adminEnv.subtitle : (fb ? fb.subtitle : ''),
-                            title: adminEnv && adminEnv.title ? adminEnv.title : (fb ? fb.title : sectionKey),
-                            description: adminEnv && adminEnv.description ? adminEnv.description : (fb ? fb.description : '')
-                        };
-                    });
-                }
-            }
+        const data = await fetchJson('ambientes/galeria');
+        if (Array.isArray(data) && data.length > 0) {
+            return SECTION_ORDER.map((sectionKey) => {
+                const fb = FALLBACK_STORYTELLING.find((f) => f.section === sectionKey);
+                const sectionItems = data.filter((e) => e.secao === sectionKey);
+                const chosen = sectionItems.find((e) => e.isActive) || sectionItems[0];
+                return {
+                    section: sectionKey,
+                    image: chosen && chosen.foto ? chosen.foto : (fb ? fb.image : ''),
+                    subtitle: chosen && chosen.subtitulo ? chosen.subtitulo : (fb ? fb.subtitle : ''),
+                    title: chosen && chosen.titulo ? chosen.titulo : (fb ? fb.title : sectionKey),
+                    description: chosen && chosen.descricao ? chosen.descricao : (fb ? fb.description : '')
+                };
+            });
         }
-    } catch(err) {}
+    } catch (err) {
+        console.warn('Não foi possível carregar a galeria de ambientes da API, usando dados padrão.', err);
+    }
     return FALLBACK_STORYTELLING;
 }
 
-const storytellingData = loadStorytellingFromAdmin();
-
-// Dados das Stats
+// Dados das Stats (conteúdo fixo do site, não gerenciado pelo painel administrativo)
 const statsData = [
     { icon: "fas fa-users", number: "180+", label: "Capacidade Total" },
     { icon: "fas fa-temperature-low", number: "Climatizado", label: "Ar Condicionado" },
@@ -143,22 +98,20 @@ let currentIndex = 0;
 let slides = [];
 let autoInterval;
 
-
-
 // Renderizar Carrossel COM BOTÕES
-function renderCarousel() {
+function renderCarousel(carouselData) {
     const container = document.getElementById('carouselContainer');
     const dotsContainer = document.getElementById('carouselDots');
     if (!container || !dotsContainer) return;
 
     container.innerHTML = '';
     dotsContainer.innerHTML = '';
-    
+
     carouselData.forEach((slide, idx) => {
         const slideDiv = document.createElement('div');
         slideDiv.className = 'carousel-slide';
         if (idx === 0) slideDiv.classList.add('active');
-        
+
         slideDiv.innerHTML = `
             <div class="slide-bg" style="background-image: url('${slide.image}');"></div>
             <div class="slide-content">
@@ -172,7 +125,7 @@ function renderCarousel() {
             </div>
         `;
         container.appendChild(slideDiv);
-        
+
         const dot = document.createElement('div');
         dot.className = 'dot';
         if (idx === 0) dot.classList.add('active');
@@ -183,16 +136,16 @@ function renderCarousel() {
 }
 
 // Renderizar Storytelling (grade alternada)
-function renderStorytelling() {
+function renderStorytelling(storytellingData) {
     const grid = document.getElementById('storyGrid');
     if (!grid) return;
     grid.innerHTML = '';
-    
+
     storytellingData.forEach((item, index) => {
         const isEven = index % 2 === 0;
         const storyDiv = document.createElement('div');
         storyDiv.className = `story-item reveal-item ${!isEven ? 'reverse' : ''}`;
-        
+
         storyDiv.innerHTML = `
             <div class="story-image">
                 <img src="${item.image}" alt="${item.title}" loading="lazy">
@@ -212,8 +165,8 @@ function renderStats() {
     const statsGrid = document.getElementById('statsGrid');
     if (!statsGrid) return;
     statsGrid.innerHTML = '';
-    
-    statsData.forEach((stat, index) => {
+
+    statsData.forEach((stat) => {
         const card = document.createElement('div');
         card.className = `stat-card reveal-item`;
         card.innerHTML = `
@@ -231,7 +184,7 @@ function updateCarousel() {
     slides = document.querySelectorAll('.carousel-slide');
     const dots = document.querySelectorAll('.dot');
     if (!slides.length) return;
-    
+
     slides.forEach((slide, i) => {
         slide.classList.toggle('active', i === currentIndex);
     });
@@ -269,7 +222,7 @@ function resetAutoInterval() {
 
 function initScrollReveal() {
     const revealElements = document.querySelectorAll('.reveal-item');
-    
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -278,33 +231,35 @@ function initScrollReveal() {
             }
         });
     }, { threshold: 0.2, rootMargin: '0px 0px -30px 0px' });
-    
+
     revealElements.forEach(el => observer.observe(el));
 }
 
 // ==================== INICIALIZAÇÃO ====================
 
-function init() {
-    renderCarousel();
-    renderStorytelling();
+async function init() {
+    const [carouselData, storytellingData] = await Promise.all([loadCarousel(), loadStorytelling()]);
+
+    renderCarousel(carouselData);
+    renderStorytelling(storytellingData);
     renderStats();
-    
+
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
-    
+
     if (prevBtn) prevBtn.addEventListener('click', prevSlide);
     if (nextBtn) nextBtn.addEventListener('click', nextSlide);
-    
+
     slides = document.querySelectorAll('.carousel-slide');
     if (slides.length) {
         updateCarousel();
         resetAutoInterval();
     }
-    
+
     setTimeout(() => {
         initScrollReveal();
     }, 200);
-    
+
     window.addEventListener('load', () => {
         initScrollReveal();
     });

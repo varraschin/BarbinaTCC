@@ -2,7 +2,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const reservaForm = document.getElementById('reservaForm');
     if (!reservaForm) return;
 
-    const STORAGE_KEY = 'barbina_cms_v2';
     const WHATSAPP_NUMBER = '551434381255'; // (14) 3438-1255
 
     // ---------- Horário de funcionamento (fonte única de verdade) ----------
@@ -175,45 +174,29 @@ document.addEventListener('DOMContentLoaded', function () {
         feedbackEl.hidden = true;
     }
 
-    // ---------- Persistência local (para aparecer no painel administrativo) ----------
-    function loadDb() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) return JSON.parse(raw);
-        } catch (e) { /* ignora */ }
-        return null;
-    }
+    // ---------- Persistência via API (Barbina.API + MySQL) ----------
+    const API_BASE = 'http://localhost:5058/api/';
 
-    function nextId(list) {
-        if (!list || !list.length) return 1;
-        return Math.max(...list.map((x) => x.id)) + 1;
-    }
-
-    function saveReservationLocally(payload) {
-        let db = loadDb();
-        if (!db) db = { reservations: [], menu: [], environments: [], activities: [], carouselOrder: [] };
-        if (!Array.isArray(db.reservations)) db.reservations = [];
-        if (!Array.isArray(db.activities)) db.activities = [];
-
-        db.reservations.push({
-            id: nextId(db.reservations),
-            ...payload,
-            confirmed: false,
-            createdAt: new Date().toISOString()
+    async function saveReservationToApi(payload) {
+        const body = {
+            nome: payload.name,
+            telefone: payload.phone,
+            email: payload.email,
+            data: payload.date,
+            hora: payload.time,
+            pessoas: payload.people,
+            tipo: payload.type,
+            tipoEvento: payload.eventType,
+            ambiente: payload.ambiente,
+            observacoes: payload.notes
+        };
+        const res = await fetch(API_BASE + 'reservas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
         });
-
-        db.activities.unshift({
-            id: nextId(db.activities),
-            action: `Nova solicitação de reserva: ${payload.name}`,
-            user: 'site',
-            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            icon: 'fa-calendar-check'
-        });
-        db.activities = db.activities.slice(0, 50);
-
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-        } catch (e) { /* armazenamento indisponível — segue o fluxo do WhatsApp normalmente */ }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
     }
 
     function formatDateBR(iso) {
@@ -309,11 +292,9 @@ document.addEventListener('DOMContentLoaded', function () {
             notes: observacoes
         };
 
-        // Salva localmente para aparecer no painel administrativo
-        saveReservationLocally(payload);
-
-        // Monta a mensagem e abre o WhatsApp (precisa ser síncrono, no mesmo gesto de clique,
-        // para não ser bloqueado como pop-up)
+        // Abre o WhatsApp imediatamente, ainda dentro do mesmo gesto de clique do
+        // usuário — se isso fosse feito depois de um "await", o navegador poderia
+        // bloquear a janela como pop-up indesejado.
         const mensagem = buildWhatsAppMessage(payload);
         const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensagem)}`;
         window.open(waUrl, '_blank');
@@ -326,5 +307,12 @@ document.addEventListener('DOMContentLoaded', function () {
         reservaForm.reset();
         toggleDetalhesEvento();
         atualizarHorarios();
+
+        // Persiste no banco de dados em segundo plano. O WhatsApp já foi aberto e a
+        // confirmação visual já foi exibida, então um eventual erro de rede aqui não
+        // deve interromper a experiência do usuário — apenas registramos no console.
+        saveReservationToApi(payload).catch((err) => {
+            console.error('Não foi possível registrar a reserva no servidor:', err);
+        });
     });
 });
